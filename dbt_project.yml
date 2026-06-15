@@ -1,0 +1,28 @@
+name: 'analytics_engineering_portfolio'
+version: '1.0.0'
+config-version: 2
+
+profile: 'analytics_engineering_portfolio'
+
+model-paths: ["models"]
+snapshot-paths: ["snapshots"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+seed-paths: ["seeds"]
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  analytics_engineering_portfolio:
+    staging:
+      +materialized: view
+    intermediate:
+      +materialized: ephemeral
+    marts:
+      +materialized: table
+      core:
+        # fct_order_items overrides to incremental in its own config block
+        +materialized: table

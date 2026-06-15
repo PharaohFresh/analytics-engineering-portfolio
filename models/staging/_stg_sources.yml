@@ -1,0 +1,17 @@
+version: 2
+
+sources:
+  - name: tpch
+    description: "Snowflake TPCH_SF1 sample data, framed as a retail & supply-chain source system."
+    database: SNOWFLAKE_SAMPLE_DATA
+    schema: TPCH_SF1
+    # Note: TPCH sample tables carry no load-timestamp column, so source freshness
+    # is not configured here. On a real source I'd add loaded_at_field + freshness thresholds.
+    tables:
+      - name: orders
+      - name: customer
+      - name: lineitem
+      - name: part
+      - name: supplier
+      - name: nation
+      - name: region

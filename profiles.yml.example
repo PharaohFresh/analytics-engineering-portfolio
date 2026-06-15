@@ -1,0 +1,24 @@
+# Copy to ~/.dbt/profiles.yml and fill in real values. NEVER commit the real file.
+analytics_engineering_portfolio:
+  target: dev
+  outputs:
+    dev:
+      type: snowflake
+      account: "<your_account>"        # e.g. ab12345.us-east-1
+      user: "<your_user>"
+      password: "<your_password>"      # or use authenticator: externalbrowser
+      role: "TRANSFORMER"
+      database: "ANALYTICS_DEV"
+      warehouse: "COMPUTE_WH"
+      schema: "dbt_dev"
+      threads: 4
+    prod:
+      type: snowflake
+      account: "<your_account>"
+      user: "<your_user>"
+      password: "<your_password>"
+      role: "TRANSFORMER"
+      database: "ANALYTICS_PROD"
+      warehouse: "COMPUTE_WH"
+      schema: "analytics"
+      threads: 8

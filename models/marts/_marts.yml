@@ -1,0 +1,71 @@
+version: 2
+
+models:
+  - name: dim_customers
+    description: "Conformed customer dimension with geography and lifetime order summary. Grain: one row per customer."
+    columns:
+      - name: customer_key
+        description: "Primary key."
+        tests: [not_null, unique]
+      - name: market_segment
+        tests:
+          - accepted_values:
+              values: ['AUTOMOBILE', 'BUILDING', 'FURNITURE', 'HOUSEHOLD', 'MACHINERY']
+
+  - name: dim_parts
+    description: "Part dimension. Grain: one row per part."
+    columns:
+      - name: part_key
+        tests: [not_null, unique]
+
+  - name: dim_suppliers
+    description: "Supplier dimension with geography. Grain: one row per supplier."
+    columns:
+      - name: supplier_key
+        tests: [not_null, unique]
+
+  - name: dim_dates
+    description: "Date dimension derived from observed event dates. Grain: one row per calendar date."
+    columns:
+      - name: date_key
+        tests: [not_null, unique]
+
+  - name: fct_orders
+    description: "Order fact. Grain: one row per order."
+    columns:
+      - name: order_key
+        description: "Primary key — one row per order."
+        tests: [not_null, unique]
+      - name: customer_key
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_customers')
+              field: customer_key
+
+  - name: fct_order_items
+    description: "Order-line fact, incremental on order_date. Grain: one row per order line."
+    columns:
+      - name: order_item_key
+        description: "Surrogate key: order_key || '-' || line_number. Asserts the line grain."
+        tests: [not_null, unique]
+      - name: order_key
+        tests:
+          - not_null
+          - relationships:
+              to: ref('fct_orders')
+              field: order_key
+      - name: customer_key
+        tests: [not_null]
+
+  - name: mart_revenue_by_segment
+    description: "Net revenue and order metrics by market segment and region. Grain: (market_segment, region_name)."
+    columns:
+      - name: total_net_revenue
+        tests: [not_null]
+
+  - name: mart_supplier_spend
+    description: "Spend and volume by supplier. Grain: one row per supplier."
+    columns:
+      - name: supplier_key
+        tests: [not_null, unique]

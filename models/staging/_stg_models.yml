@@ -1,0 +1,66 @@
+version: 2
+
+models:
+  - name: stg_orders
+    description: "One row per order, renamed and typed from the orders source."
+    columns:
+      - name: order_key
+        description: "Primary key — natural order identifier."
+        tests: [not_null, unique]
+      - name: customer_key
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_customers')
+              field: customer_key
+      - name: order_status
+        tests:
+          - accepted_values:
+              values: ['O', 'F', 'P']
+
+  - name: stg_customers
+    description: "One row per customer."
+    columns:
+      - name: customer_key
+        tests: [not_null, unique]
+      - name: nation_key
+        tests:
+          - relationships:
+              to: ref('stg_nation')
+              field: nation_key
+
+  - name: stg_lineitems
+    description: "One row per order line item. Net revenue computed as extended_price * (1 - discount)."
+    columns:
+      - name: order_key
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_orders')
+              field: order_key
+      - name: part_key
+        tests: [not_null]
+      - name: supplier_key
+        tests: [not_null]
+
+  - name: stg_parts
+    description: "One row per part."
+    columns:
+      - name: part_key
+        tests: [not_null, unique]
+
+  - name: stg_suppliers
+    description: "One row per supplier."
+    columns:
+      - name: supplier_key
+        tests: [not_null, unique]
+
+  - name: stg_nation
+    columns:
+      - name: nation_key
+        tests: [not_null, unique]
+
+  - name: stg_region
+    columns:
+      - name: region_key
+        tests: [not_null, unique]
