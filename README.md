@@ -39,7 +39,7 @@ runbooks/         declarative runbooks (add-a-new-mart, model-review, qa, ai-ass
 ```bash
 pip install dbt-snowflake
 cp profiles.yml.example ~/.dbt/profiles.yml   # then fill in your Snowflake creds (never commit them)
-dbt deps        # (phase 2: dbt_utils)
+dbt deps        # installs packages if packages.yml is present
 dbt build       # runs models + tests in DAG order
 dbt docs generate && dbt docs serve
 ```
@@ -47,12 +47,11 @@ dbt docs generate && dbt docs serve
 ## Governance
 See [`GOVERNANCE.md`](GOVERNANCE.md) — environment separation, no-deletion policy, PR promotion, approval gate.
 
-## Roadmap (build-in-public, mapped to course progress)
-- [x] Phase 1 — staging + core dims/facts, generic tests, incremental fact, SCD-2 snapshot, governance + runbooks
-- [ ] Phase 2 (after Macros/Packages) — `dbt_utils`, grain-assertion macro, `scripts/qa_audit.py` wired to test results
-- [ ] Phase 3 (after Documentation) — rich descriptions, generated docs + DAG screenshot
-- [ ] Phase 4 (after Semantic Layer) — semantic-layer metrics (revenue, AOV) + one exposure
-- [ ] dbt certification (target ~July 2026)
+## Roadmap
+A platform is never "done" — deliberate next iterations:
+- **Semantic layer** — governed metrics (revenue, AOV) + a downstream exposure
+- **Grain-assertion macro** (`dbt_utils`) — reusable uniqueness/grain guards across facts
+- **Generated docs + DAG** — published lineage graph and model-level documentation
 
 ---
 *Built by Amir Ebrahim — senior analytics engineer. [linkedin.com/in/amirebrahim](https://linkedin.com/in/amirebrahim)*
