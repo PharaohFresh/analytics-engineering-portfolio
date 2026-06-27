@@ -1,24 +1,22 @@
 # Copy to ~/.dbt/profiles.yml and fill in real values. NEVER commit the real file.
+# Auth: OAuth via Application Default Credentials — run once:
+#   gcloud auth application-default login
 analytics_engineering_portfolio:
   target: dev
   outputs:
     dev:
-      type: snowflake
-      account: "<your_account>"        # e.g. ab12345.us-east-1
-      user: "<your_user>"
-      password: "<your_password>"      # or use authenticator: externalbrowser
-      role: "TRANSFORMER"
-      database: "ANALYTICS_DEV"
-      warehouse: "COMPUTE_WH"
-      schema: "dbt_dev"
+      type: bigquery
+      method: oauth
+      project: career-analytics-portfolio   # your GCP project
+      dataset: dbt_dev
+      location: US                          # thelook_ecommerce lives in the US multi-region
       threads: 4
+      priority: interactive
     prod:
-      type: snowflake
-      account: "<your_account>"
-      user: "<your_user>"
-      password: "<your_password>"
-      role: "TRANSFORMER"
-      database: "ANALYTICS_PROD"
-      warehouse: "COMPUTE_WH"
-      schema: "analytics"
+      type: bigquery
+      method: oauth
+      project: career-analytics-portfolio
+      dataset: analytics
+      location: US
       threads: 8
+      priority: interactive

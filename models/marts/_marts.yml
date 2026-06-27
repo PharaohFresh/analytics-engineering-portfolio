@@ -2,26 +2,27 @@ version: 2
 
 models:
   - name: dim_customers
-    description: "Conformed customer dimension with geography and lifetime order summary. Grain: one row per customer."
+    description: "Conformed customer dimension with inline geography and lifetime order summary. Grain: one row per customer."
     columns:
       - name: customer_key
         description: "Primary key."
         tests: [not_null, unique]
-      - name: market_segment
+      - name: gender
         tests:
           - accepted_values:
-              values: ['AUTOMOBILE', 'BUILDING', 'FURNITURE', 'HOUSEHOLD', 'MACHINERY']
+              arguments:
+                values: ['M', 'F']
 
-  - name: dim_parts
-    description: "Part dimension. Grain: one row per part."
+  - name: dim_products
+    description: "Product dimension with fulfillment origin. Grain: one row per product."
     columns:
-      - name: part_key
+      - name: product_key
         tests: [not_null, unique]
 
-  - name: dim_suppliers
-    description: "Supplier dimension with geography. Grain: one row per supplier."
+  - name: dim_distribution_centers
+    description: "Distribution center dimension. Grain: one row per center."
     columns:
-      - name: supplier_key
+      - name: distribution_center_key
         tests: [not_null, unique]
 
   - name: dim_dates
@@ -40,32 +41,41 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('dim_customers')
-              field: customer_key
+              arguments:
+                to: ref('dim_customers')
+                field: customer_key
 
   - name: fct_order_items
-    description: "Order-line fact, incremental on order_date. Grain: one row per order line."
+    description: "Order-item fact, incremental on item_created_at. Grain: one row per order item."
     columns:
       - name: order_item_key
-        description: "Surrogate key: order_key || '-' || line_number. Asserts the line grain."
+        description: "Primary key — natural order-item identifier. Asserts the item grain."
         tests: [not_null, unique]
       - name: order_key
         tests:
           - not_null
           - relationships:
-              to: ref('fct_orders')
-              field: order_key
+              arguments:
+                to: ref('fct_orders')
+                field: order_key
+      - name: product_key
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_products')
+                field: product_key
       - name: customer_key
         tests: [not_null]
 
   - name: mart_revenue_by_segment
-    description: "Net revenue and order metrics by market segment and region. Grain: (market_segment, region_name)."
+    description: "Revenue and order metrics by acquisition channel and country. Grain: (traffic_source, country)."
     columns:
-      - name: total_net_revenue
+      - name: total_revenue
         tests: [not_null]
 
-  - name: mart_supplier_spend
-    description: "Spend and volume by supplier. Grain: one row per supplier."
+  - name: mart_product_category_margin
+    description: "Revenue, margin, and return rate by product category. Grain: (department, category)."
     columns:
-      - name: supplier_key
-        tests: [not_null, unique]
+      - name: total_revenue
+        tests: [not_null]

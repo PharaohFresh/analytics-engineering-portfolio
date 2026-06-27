@@ -1,17 +1,16 @@
 version: 2
 
 sources:
-  - name: tpch
-    description: "Snowflake TPCH_SF1 sample data, framed as a retail & supply-chain source system."
-    database: SNOWFLAKE_SAMPLE_DATA
-    schema: TPCH_SF1
-    # Note: TPCH sample tables carry no load-timestamp column, so source freshness
-    # is not configured here. On a real source I'd add loaded_at_field + freshness thresholds.
+  - name: thelook
+    description: "Google's `bigquery-public-data.thelook_ecommerce` sample data — a synthetic DTC retail store (customers, orders, items, products, distribution centers)."
+    database: bigquery-public-data
+    schema: thelook_ecommerce
+    # The public dataset is regenerated rather than incrementally loaded, so a
+    # meaningful source-freshness SLA isn't well-defined here. On a real source I'd
+    # add loaded_at_field: created_at + warn_after/error_after thresholds.
     tables:
+      - name: users
       - name: orders
-      - name: customer
-      - name: lineitem
-      - name: part
-      - name: supplier
-      - name: nation
-      - name: region
+      - name: order_items
+      - name: products
+      - name: distribution_centers

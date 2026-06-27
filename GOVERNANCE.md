@@ -4,7 +4,7 @@ This repo models the same governance discipline I run on production platforms �
 portfolios skip. The point isn't ceremony; it's that data people can *trust* what ships.
 
 ## Environments
-- **dev** and **prod** are separate Snowflake databases (`ANALYTICS_DEV` / `ANALYTICS_PROD`), selected by dbt target.
+- **dev** and **prod** are separate BigQuery datasets (`dbt_dev` / `analytics`) in the same GCP project, selected by dbt target.
 - All development happens against `dev`. Nothing runs against `prod` from a laptop.
 
 ## Promotion (dev → prod)
@@ -22,8 +22,8 @@ portfolios skip. The point isn't ceremony; it's that data people can *trust* wha
 - `scripts/qa_audit.py` reconciles row counts staging → marts as an independent check (trust, but verify).
 
 ## Secrets
-- Credentials live only in `~/.dbt/profiles.yml` (gitignored). `profiles.yml.example` is the template.
-- No keys, passwords, or account identifiers are ever committed.
+- Auth is OAuth via Application Default Credentials (`gcloud auth application-default login`) — no key file in the repo. `profiles.yml.example` is the template.
+- No keys, service-account JSON, or project credentials are ever committed.
 
 ## Rollback
 - Because promotion is PR-based and `prod` is rebuildable from version-controlled code, rollback = revert the commit and rerun the pipeline.

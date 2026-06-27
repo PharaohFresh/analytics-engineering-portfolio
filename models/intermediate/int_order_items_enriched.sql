@@ -1,47 +1,56 @@
--- One row per order line, enriched with order context, part, and supplier attributes.
--- Grain: order line (order_key + line_number). Feeds fct_order_items.
+-- One row per order line (one physical unit), enriched with order, product, and
+-- fulfillment context. Grain: order item. Feeds fct_order_items.
 
-with lineitems as (
-    select * from {{ ref('stg_lineitems') }}
+with order_items as (
+    select * from {{ ref('stg_order_items') }}
 ),
 
 orders as (
-    select order_key, customer_key, order_date, order_status
+    select order_key, order_status
     from {{ ref('stg_orders') }}
 ),
 
-parts as (
-    select part_key, brand, manufacturer, part_type
-    from {{ ref('stg_parts') }}
+products as (
+    select
+        product_key,
+        product_name,
+        brand,
+        category,
+        department,
+        cost,
+        retail_price,
+        distribution_center_key
+    from {{ ref('stg_products') }}
 ),
 
-suppliers as (
-    select supplier_key, supplier_name, nation_key as supplier_nation_key
-    from {{ ref('stg_suppliers') }}
+distribution_centers as (
+    select distribution_center_key, distribution_center_name
+    from {{ ref('stg_distribution_centers') }}
 )
 
 select
-    li.order_key,
-    li.line_number,
-    o.customer_key,
-    o.order_date,
-    o.order_status,
-    li.part_key,
+    oi.order_item_key,
+    oi.order_key,
+    oi.customer_key,
+    oi.product_key,
+    p.product_name,
     p.brand,
-    p.manufacturer,
-    p.part_type,
-    li.supplier_key,
-    s.supplier_name,
-    s.supplier_nation_key,
-    li.quantity,
-    li.extended_price,
-    li.discount,
-    li.tax,
-    li.net_revenue,
-    li.return_flag,
-    li.ship_date,
-    li.ship_mode
-from lineitems li
-inner join orders o     on li.order_key = o.order_key
-left join parts p       on li.part_key = p.part_key
-left join suppliers s   on li.supplier_key = s.supplier_key
+    p.category,
+    p.department,
+    p.distribution_center_key,
+    dc.distribution_center_name,
+    o.order_status,
+    oi.item_status,
+    oi.order_date,
+    oi.item_created_at,
+    oi.shipped_at,
+    oi.delivered_at,
+    oi.returned_at,
+    oi.sale_price,
+    p.cost                              as unit_cost,
+    oi.sale_price - p.cost             as gross_margin,
+    (oi.returned_at is not null)        as is_returned
+from order_items oi
+inner join orders o                 on oi.order_key = o.order_key
+left join products p                on oi.product_key = p.product_key
+left join distribution_centers dc   on p.distribution_center_key = dc.distribution_center_key

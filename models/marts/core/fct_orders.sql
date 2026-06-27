@@ -1,5 +1,5 @@
 -- Order fact. Grain: one row per order.
--- Order-header price from source, plus line-rollup measures for reconciliation.
+-- Orders carry no header price in this source, so revenue/margin roll up from order items.
 
 with orders as (
     select * from {{ ref('stg_orders') }}
@@ -8,10 +8,11 @@ with orders as (
 line_rollup as (
     select
         order_key,
-        count(*)            as line_count,
-        sum(quantity)       as total_quantity,
-        sum(net_revenue)    as total_net_revenue
-    from {{ ref('stg_lineitems') }}
+        count(*)                            as item_count,
+        sum(sale_price)                     as total_revenue,
+        sum(gross_margin)                   as total_gross_margin,
+        sum(case when is_returned then 1 else 0 end) as returned_item_count
+    from {{ ref('int_order_items_enriched') }}
     group by order_key
 )
 
@@ -20,10 +21,13 @@ select
     o.customer_key,
     o.order_date,
     o.order_status,
-    o.order_priority,
-    o.total_price          as order_header_price,
-    lr.line_count,
-    lr.total_quantity,
-    lr.total_net_revenue
+    o.num_items,
+    o.shipped_at,
+    o.delivered_at,
+    o.returned_at,
+    lr.item_count,
+    lr.total_revenue,
+    lr.total_gross_margin,
+    lr.returned_item_count
 from orders o
 left join line_rollup lr on o.order_key = lr.order_key

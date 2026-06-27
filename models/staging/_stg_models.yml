@@ -11,56 +11,47 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('stg_customers')
-              field: customer_key
+              arguments:
+                to: ref('stg_customers')
+                field: customer_key
       - name: order_status
         tests:
           - accepted_values:
-              values: ['O', 'F', 'P']
+              arguments:
+                values: ['Complete', 'Processing', 'Shipped', 'Cancelled', 'Returned']
 
   - name: stg_customers
-    description: "One row per customer."
+    description: "One row per customer, with inline geography (city/state/country)."
     columns:
       - name: customer_key
         tests: [not_null, unique]
-      - name: nation_key
-        tests:
-          - relationships:
-              to: ref('stg_nation')
-              field: nation_key
 
-  - name: stg_lineitems
-    description: "One row per order line item. Net revenue computed as extended_price * (1 - discount)."
+  - name: stg_order_items
+    description: "One row per order line item (one physical unit). Revenue carried as sale_price."
     columns:
+      - name: order_item_key
+        description: "Primary key — natural order-item identifier."
+        tests: [not_null, unique]
       - name: order_key
         tests:
           - not_null
           - relationships:
-              to: ref('stg_orders')
-              field: order_key
-      - name: part_key
+              arguments:
+                to: ref('stg_orders')
+                field: order_key
+      - name: product_key
         tests: [not_null]
-      - name: supplier_key
+      - name: customer_key
         tests: [not_null]
 
-  - name: stg_parts
-    description: "One row per part."
+  - name: stg_products
+    description: "One row per product. Carries cost + retail_price for margin analysis."
     columns:
-      - name: part_key
+      - name: product_key
         tests: [not_null, unique]
 
-  - name: stg_suppliers
-    description: "One row per supplier."
+  - name: stg_distribution_centers
+    description: "One row per distribution center (fulfillment origin)."
     columns:
-      - name: supplier_key
-        tests: [not_null, unique]
-
-  - name: stg_nation
-    columns:
-      - name: nation_key
-        tests: [not_null, unique]
-
-  - name: stg_region
-    columns:
-      - name: region_key
+      - name: distribution_center_key
         tests: [not_null, unique]

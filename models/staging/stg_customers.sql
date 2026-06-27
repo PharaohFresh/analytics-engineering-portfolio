@@ -1,13 +1,18 @@
 with source as (
-    select * from {{ source('tpch', 'customer') }}
+    select * from {{ source('thelook', 'users') }}
 )
 
 select
-    c_custkey    as customer_key,
-    c_name       as customer_name,
-    c_address    as address,
-    c_nationkey  as nation_key,
-    c_phone      as phone,
-    c_acctbal    as account_balance,
-    c_mktsegment as market_segment
+    id              as customer_key,
+    first_name,
+    last_name,
+    email,
+    age,
+    gender,
+    city,
+    state,
+    postal_code,
+    country,
+    traffic_source,
+    created_at      as customer_created_at
 from source

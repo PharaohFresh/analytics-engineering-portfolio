@@ -6,32 +6,34 @@
     )
 }}
 
--- Order-line fact. Grain: one row per order line (order_key + line_number).
--- Incremental on order_date to mirror high-volume transactional fact patterns.
+-- Order-item fact. Grain: one row per order item (one physical unit).
+-- Incremental on item_created_at to mirror high-volume transactional fact patterns.
 
 with enriched as (
     select * from {{ ref('int_order_items_enriched') }}
 )
 
 select
-    order_key || '-' || line_number as order_item_key,
+    order_item_key,
     order_key,
-    line_number,
     customer_key,
-    part_key,
-    supplier_key,
+    product_key,
+    category,
+    department,
+    distribution_center_key,
+    item_status,
     order_date,
-    ship_date,
-    ship_mode,
-    return_flag,
-    quantity,
-    extended_price,
-    discount,
-    tax,
-    net_revenue
+    item_created_at,
+    shipped_at,
+    delivered_at,
+    returned_at,
+    is_returned,
+    sale_price,
+    unit_cost,
+    gross_margin
 from enriched
 
 {% if is_incremental() %}
--- only process orders newer than what's already loaded
-where order_date > (select coalesce(max(order_date), '1900-01-01') from {{ this }})
+-- only process items newer than what's already loaded
+where item_created_at > (select coalesce(max(item_created_at), timestamp '1900-01-01') from {{ this }})
 {% endif %}

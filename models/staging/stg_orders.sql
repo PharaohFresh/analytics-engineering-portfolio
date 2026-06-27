@@ -1,14 +1,15 @@
 with source as (
-    select * from {{ source('tpch', 'orders') }}
+    select * from {{ source('thelook', 'orders') }}
 )
 
 select
-    o_orderkey      as order_key,
-    o_custkey       as customer_key,
-    o_orderstatus   as order_status,
-    o_totalprice    as total_price,
-    o_orderdate     as order_date,
-    o_orderpriority as order_priority,
-    o_clerk         as clerk,
-    o_shippriority  as ship_priority
+    order_id            as order_key,
+    user_id             as customer_key,
+    status              as order_status,
+    num_of_item         as num_items,
+    created_at          as order_created_at,
+    cast(created_at as date) as order_date,
+    shipped_at,
+    delivered_at,
+    returned_at
 from source
