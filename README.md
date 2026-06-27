@@ -13,6 +13,10 @@ actually looks for:
 3. **Governance** — dev/prod separation, no-deletion policy, PR-based promotion, a human-approval gate before prod. (Rare in a portfolio.)
 4. **Governed agentic delivery** — AI used as an accountable accelerator, with the receipts (`runbooks/ai-assisted-delivery.md`).
 
+> Companion repo: the governed agentic delivery model that operates this warehouse —
+> multi-agent plan → approval gate → execute → verify → log — lives at
+> [`agentic-analytics-delivery`](https://github.com/PharaohFresh/agentic-analytics-delivery).
+
 ## Architecture
 
 ```
