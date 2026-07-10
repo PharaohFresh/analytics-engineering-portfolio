@@ -1,0 +1,56 @@
+name: dbt-ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-and-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dbt + BigQuery client
+        run: pip install dbt-bigquery google-cloud-bigquery
+
+      - name: Write service-account keyfile from secret
+        env:
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+        run: printf '%s' "$GCP_SA_KEY" > "$RUNNER_TEMP/gcp_sa_key.json"
+
+      - name: Write CI profile
+        run: |
+          mkdir -p ci
+          cat > ci/profiles.yml <<EOF
+          analytics_engineering_portfolio:
+            target: ci
+            outputs:
+              ci:
+                type: bigquery
+                method: service-account
+                keyfile: $RUNNER_TEMP/gcp_sa_key.json
+                project: career-analytics-portfolio
+                dataset: dbt_ci
+                location: US
+                threads: 4
+                priority: interactive
+          EOF
+
+      # --full-refresh: thelook_ecommerce is periodically regenerated upstream, so an
+      # incremental table persisted across CI runs would accumulate orphans from prior
+      # generations of the source. CI builds hermetically from the current source state.
+      - name: dbt build (models + tests + snapshots)
+        run: dbt build --full-refresh --profiles-dir ci
+
+      - name: Independent QA reconciliation (trust, but verify)
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/gcp_sa_key.json
+          BQ_PROJECT: career-analytics-portfolio
+          BQ_DATASET: dbt_ci
+        run: python scripts/qa_audit.py

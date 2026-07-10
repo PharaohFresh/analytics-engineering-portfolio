@@ -1,5 +1,7 @@
 # Retail / DTC Analytics Platform (dbt + BigQuery)
 
+[![dbt-ci](https://github.com/PharaohFresh/analytics-engineering-portfolio/actions/workflows/dbt-ci.yml/badge.svg)](https://github.com/PharaohFresh/analytics-engineering-portfolio/actions/workflows/dbt-ci.yml)
+
 A governed, agentic analytics-engineering platform built on Google's
 `bigquery-public-data.thelook_ecommerce` sample data — a synthetic direct-to-consumer
 retail store. Orders, customers, products, order items, and distribution centers are

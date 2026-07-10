@@ -8,6 +8,9 @@
 
 -- Order-item fact. Grain: one row per order item (one physical unit).
 -- Incremental on item_created_at to mirror high-volume transactional fact patterns.
+-- Landmine: thelook_ecommerce is periodically regenerated upstream (keys reassigned),
+-- so rows merged from a prior generation become orphans vs. the rebuilt fct_orders.
+-- The relationships test catches it; recovery is `dbt build --full-refresh`.
 
 with enriched as (
     select * from {{ ref('int_order_items_enriched') }}
