@@ -1,0 +1,37 @@
+version: 2
+
+semantic_models:
+  - name: orders
+    description: >
+      Order-grain semantic model over fct_orders. One record per order. Provides
+      order- and customer-level measures; joins to order_items on the order_id entity.
+    model: ref('fct_orders')
+    defaults:
+      agg_time_dimension: ordered_at
+
+    entities:
+      - name: order_id
+        type: primary
+        expr: order_key
+      - name: customer
+        type: foreign
+        expr: customer_key
+
+    dimensions:
+      - name: ordered_at
+        type: time
+        expr: order_date
+        type_params:
+          time_granularity: day
+      - name: order_status
+        type: categorical
+
+    measures:
+      - name: order_count
+        description: "Count of orders."
+        agg: count
+        expr: order_key
+      - name: active_customers
+        description: "Distinct customers placing at least one order."
+        agg: count_distinct
+        expr: customer_key

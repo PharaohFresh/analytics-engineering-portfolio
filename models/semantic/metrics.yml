@@ -1,0 +1,70 @@
+version: 2
+
+metrics:
+  # -- base metrics -----------------------------------------------------------
+  - name: total_revenue
+    label: Total revenue
+    description: "Gross revenue: sum of order-item sale prices."
+    type: simple
+    type_params:
+      measure: gross_revenue
+
+  - name: total_gross_margin
+    label: Total gross margin
+    description: "Sum of item-level gross margin (sale price minus unit cost)."
+    type: simple
+    type_params:
+      measure: gross_margin
+
+  - name: items_sold
+    label: Items sold
+    description: "Count of order items."
+    type: simple
+    type_params:
+      measure: items_sold
+
+  - name: items_returned
+    label: Items returned
+    description: "Count of order items flagged returned."
+    type: simple
+    type_params:
+      measure: items_returned
+
+  - name: order_count
+    label: Orders
+    description: "Count of orders."
+    type: simple
+    type_params:
+      measure: order_count
+
+  - name: active_customers
+    label: Active customers
+    description: "Distinct customers with at least one order in the period."
+    type: simple
+    type_params:
+      measure: active_customers
+
+  # -- derived / ratio metrics ------------------------------------------------
+  - name: average_order_value
+    label: Average order value (AOV)
+    description: "Total revenue divided by order count."
+    type: ratio
+    type_params:
+      numerator: total_revenue
+      denominator: order_count
+
+  - name: return_rate
+    label: Return rate
+    description: "Share of sold items that were returned."
+    type: ratio
+    type_params:
+      numerator: items_returned
+      denominator: items_sold
+
+  - name: gross_margin_rate
+    label: Gross margin rate
+    description: "Gross margin as a share of gross revenue."
+    type: ratio
+    type_params:
+      numerator: total_gross_margin
+      denominator: total_revenue

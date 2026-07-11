@@ -26,9 +26,12 @@ models:
         tests: [not_null, unique]
 
   - name: dim_dates
-    description: "Date dimension derived from observed event dates. Grain: one row per calendar date."
+    description: "Date dimension derived from observed event dates. Grain: one row per calendar date. Doubles as the MetricFlow time spine."
+    time_spine:
+      standard_granularity_column: date_key
     columns:
       - name: date_key
+        granularity: day
         tests: [not_null, unique]
 
   - name: fct_orders
