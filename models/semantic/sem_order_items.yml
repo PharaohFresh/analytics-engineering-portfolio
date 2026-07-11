@@ -1,0 +1,58 @@
+version: 2
+
+semantic_models:
+  - name: order_items
+    description: >
+      Item-grain semantic model over fct_order_items. One record per order item
+      (physical unit). Source of truth for revenue, margin, and return measures —
+      metric math lives here, not in each downstream mart or dashboard.
+    model: ref('fct_order_items')
+    defaults:
+      agg_time_dimension: ordered_at
+
+    entities:
+      - name: order_item
+        type: primary
+        expr: order_item_key
+      - name: order_id
+        type: foreign
+        expr: order_key
+      - name: customer
+        type: foreign
+        expr: customer_key
+      - name: product
+        type: foreign
+        expr: product_key
+
+    dimensions:
+      - name: ordered_at
+        type: time
+        expr: order_date
+        type_params:
+          time_granularity: day
+      - name: item_status
+        type: categorical
+      - name: category
+        type: categorical
+      - name: department
+        type: categorical
+      - name: is_returned
+        type: categorical
+
+    measures:
+      - name: gross_revenue
+        description: "Sum of item sale prices."
+        agg: sum
+        expr: sale_price
+      - name: gross_margin
+        description: "Sum of item gross margin (sale price minus unit cost)."
+        agg: sum
+        expr: gross_margin
+      - name: items_sold
+        description: "Count of order items."
+        agg: count
+        expr: order_item_key
+      - name: items_returned
+        description: "Count of order items flagged returned."
+        agg: sum
+        expr: case when is_returned then 1 else 0 end

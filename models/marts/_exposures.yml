@@ -1,0 +1,18 @@
+version: 2
+
+exposures:
+  - name: revenue_margin_overview
+    label: Revenue & Margin Overview
+    type: dashboard
+    maturity: medium
+    description: >
+      Executive dashboard consuming the finance marts: revenue and order volume by
+      acquisition channel and country, plus category-level margin and return rate.
+      Declared as an exposure so `dbt ls --select +exposure:revenue_margin_overview`
+      answers "what breaks this dashboard?" before any model change ships.
+    depends_on:
+      - ref('mart_revenue_by_segment')
+      - ref('mart_product_category_margin')
+    owner:
+      name: Amir Ebrahim
+      email: amir.m.ebrahim@gmail.com

@@ -28,6 +28,8 @@ models/
   marts/
     core/         dim_customers, dim_products, dim_distribution_centers, dim_dates, fct_orders, fct_order_items
     finance/      mart_revenue_by_segment, mart_product_category_margin   ← business marts
+    _exposures.yml  declared dashboard consumer (impact analysis via `dbt ls`)
+  semantic/       MetricFlow semantic models + 9 governed metrics
 snapshots/        snap_products (SCD-2)
 scripts/          qa_audit.py — Python row-count reconciliation (trust-but-verify)
 runbooks/         declarative runbooks (add-a-new-mart, model-review, qa, ai-assisted-delivery)
@@ -59,12 +61,34 @@ python scripts/qa_audit.py
 > The source is a public dataset; you only pay BigQuery's free-tier query/storage in **your own**
 > project. The marts are tiny — well within the monthly free tier.
 
+## Semantic layer
+Metric definitions live in one governed place (`models/semantic/`), not re-derived in every
+dashboard: two semantic models (`orders`, `order_items`) expose 9 metrics — revenue, gross
+margin, AOV, return rate, margin rate, active customers, and friends. `dim_dates` doubles as
+the MetricFlow time spine, and ratio metrics resolve across semantic models (AOV = item-grain
+revenue ÷ order-grain count). Validated against the warehouse with `mf validate-configs`:
+
+```
+mf query --metrics total_revenue,order_count,average_order_value,return_rate --group-by metric_time__year
+
+metric_time__year    total_revenue    order_count    average_order_value    return_rate
+-----------------  ---------------  -------------  ---------------------  -------------
+2024                    1,859,960          21,600                  86.11         0.0961
+2025                    2,824,870          32,853                  85.99         0.1040
+2026                    2,971,470          33,835                  87.82         0.0988
+```
+
+Downstream consumption is declared, not implied: the finance marts feed a dashboard registered
+as an exposure (`models/marts/_exposures.yml`), so
+`dbt ls --select +exposure:revenue_margin_overview` answers "what breaks this dashboard?"
+before a change ships.
+
 ## Governance
 See [`GOVERNANCE.md`](GOVERNANCE.md) — environment separation, no-deletion policy, PR promotion, approval gate.
 
 ## Roadmap
 A platform is never "done" — deliberate next iterations:
-- **Semantic layer** — governed metrics (revenue, AOV, gross margin) + a downstream exposure
+- **Orchestration** — Airflow DAG artifact with a DagBag CI test
 - **Grain-assertion macro** (`dbt_utils`) — reusable uniqueness/grain guards across facts
 - **Generated docs + DAG** — published lineage graph and model-level documentation
 
