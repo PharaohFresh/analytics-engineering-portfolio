@@ -35,6 +35,79 @@ scripts/          qa_audit.py — Python row-count reconciliation (trust-but-ver
 runbooks/         declarative runbooks (add-a-new-mart, model-review, qa, ai-assisted-delivery)
 ```
 
+### Lineage
+
+```mermaid
+graph LR
+    subgraph Source["bigquery-public-data.thelook_ecommerce"]
+        users[(users)]
+        orders[(orders)]
+        order_items[(order_items)]
+        products[(products)]
+        dcs[(distribution_centers)]
+    end
+
+    subgraph Staging["staging (views)"]
+        stg_customers
+        stg_orders
+        stg_order_items
+        stg_products
+        stg_dcs[stg_distribution_centers]
+    end
+
+    subgraph Intermediate["intermediate"]
+        int_oie[int_order_items_enriched]
+        int_co[int_customer_orders]
+    end
+
+    subgraph Core["marts/core"]
+        dim_customers
+        dim_products
+        dim_dcs[dim_distribution_centers]
+        dim_dates
+        fct_orders
+        fct_order_items[/fct_order_items · incremental/]
+    end
+
+    subgraph Finance["marts/finance"]
+        m_rev[mart_revenue_by_segment]
+        m_margin[mart_product_category_margin]
+    end
+
+    users --> stg_customers
+    orders --> stg_orders
+    order_items --> stg_order_items
+    products --> stg_products
+    dcs --> stg_dcs
+
+    stg_order_items --> int_oie
+    stg_orders --> int_oie
+    stg_products --> int_oie
+    stg_dcs --> int_oie
+    stg_order_items --> int_co
+
+    stg_customers --> dim_customers
+    int_co --> dim_customers
+    stg_products --> dim_products
+    stg_dcs --> dim_products
+    stg_dcs --> dim_dcs
+    stg_orders --> dim_dates
+    stg_order_items --> dim_dates
+    stg_orders --> fct_orders
+    int_oie --> fct_orders
+    int_oie --> fct_order_items
+    stg_products --> snap[snap_products · SCD-2]
+
+    fct_order_items --> m_rev
+    dim_customers --> m_rev
+    fct_order_items --> m_margin
+
+    fct_orders --> sem[semantic layer · 9 metrics]
+    fct_order_items --> sem
+    m_rev --> exp{{exposure: revenue_margin_overview}}
+    m_margin --> exp
+```
+
 ### Grain (stated explicitly — the thing screeners check)
 - `fct_orders` — **one row per order** (`order_key`).
 - `fct_order_items` — **one row per order item / physical unit** (`order_item_key`, the natural item id); **incremental** on `item_created_at` to mirror high-volume fact patterns.
@@ -83,14 +156,44 @@ as an exposure (`models/marts/_exposures.yml`), so
 `dbt ls --select +exposure:revenue_margin_overview` answers "what breaks this dashboard?"
 before a change ships.
 
+## Verification (receipts, not claims)
+
+Latest `dbt build` against BigQuery — 2026-07-11:
+
+```
+Finished running 1 exposure, 1 incremental model, 1 snapshot, 7 table models,
+39 data tests, 5 view models in 0 hours 0 minutes and 26.47 seconds (26.47s).
+
+Completed successfully
+
+Done. PASS=53 WARN=0 ERROR=0 SKIP=0 NO-OP=1 TOTAL=54
+```
+
+The suite has caught a real integrity break, not just hypothetical ones. `thelook_ecommerce`
+is a live dataset that Google periodically regenerates, and a routine build failed the
+referential-integrity test on the incremental fact — it was carrying rows from a previous
+data generation whose orders no longer existed:
+
+```
+Failure in test relationships_fct_order_items_order_key__order_key__ref_fct_orders_
+  Got 96 results, configured to fail if != 0
+
+Done. PASS=52 WARN=0 ERROR=1 SKIP=0 NO-OP=1 TOTAL=54
+```
+
+Diagnosis: source-regeneration drift against incremental state. Resolution: `dbt build
+--full-refresh` realigns the incremental fact with the current source generation — the
+failure mode and procedure are documented in [`runbooks/qa-checklist.md`](runbooks/qa-checklist.md).
+That is exactly what relationship tests on incremental facts are for: catching upstream drift
+at build time, not when a dashboard number looks wrong.
+
 ## Governance
 See [`GOVERNANCE.md`](GOVERNANCE.md) — environment separation, no-deletion policy, PR promotion, approval gate.
 
 ## Roadmap
-A platform is never "done" — deliberate next iterations:
+Two deliberate next iterations (scoped, not aspirational):
 - **Orchestration** — Airflow DAG artifact with a DagBag CI test
 - **Grain-assertion macro** (`dbt_utils`) — reusable uniqueness/grain guards across facts
-- **Generated docs + DAG** — published lineage graph and model-level documentation
 
 ---
 *Built by Amir Ebrahim — senior analytics engineer. [linkedin.com/in/amirebrahim](https://linkedin.com/in/amirebrahim)*
