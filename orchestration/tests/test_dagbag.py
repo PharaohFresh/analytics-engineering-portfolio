@@ -20,7 +20,8 @@ EXPECTED_DAGS = {
 
 @pytest.fixture(scope="session")
 def dagbag() -> DagBag:
-    return DagBag(dag_folder=str(DAGS_DIR), include_examples=False)
+    # Airflow 3 DagBag no longer takes include_examples; it only parses dag_folder.
+    return DagBag(dag_folder=str(DAGS_DIR))
 
 
 def test_no_import_errors(dagbag):
