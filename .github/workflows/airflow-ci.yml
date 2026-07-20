@@ -1,0 +1,29 @@
+name: airflow-ci
+
+on:
+  push:
+    branches: [main]
+    paths: ["orchestration/**", ".github/workflows/airflow-ci.yml"]
+  pull_request:
+    paths: ["orchestration/**", ".github/workflows/airflow-ci.yml"]
+  workflow_dispatch:
+
+jobs:
+  dagbag-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Constraints pin the full transitive dependency tree to the set Airflow
+      # was released and tested against — the supported way to install Airflow.
+      - name: Install Airflow (constrained) + pytest
+        run: |
+          pip install "apache-airflow==3.3.0" pytest --constraint \
+            "https://raw.githubusercontent.com/apache/airflow/constraints-3.3.0/constraints-3.12.txt"
+
+      - name: DagBag structure tests
+        run: pytest orchestration/tests -v

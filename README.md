@@ -1,6 +1,7 @@
 # Retail / DTC Analytics Platform (dbt + BigQuery)
 
 [![dbt-ci](https://github.com/PharaohFresh/analytics-engineering-portfolio/actions/workflows/dbt-ci.yml/badge.svg)](https://github.com/PharaohFresh/analytics-engineering-portfolio/actions/workflows/dbt-ci.yml)
+[![airflow-ci](https://github.com/PharaohFresh/analytics-engineering-portfolio/actions/workflows/airflow-ci.yml/badge.svg)](https://github.com/PharaohFresh/analytics-engineering-portfolio/actions/workflows/airflow-ci.yml)
 
 A governed, agentic analytics-engineering platform built on Google's
 `bigquery-public-data.thelook_ecommerce` sample data — a synthetic direct-to-consumer
@@ -31,6 +32,7 @@ models/
     _exposures.yml  declared dashboard consumer (impact analysis via `dbt ls`)
   semantic/       MetricFlow semantic models + 9 governed metrics
 snapshots/        snap_products (SCD-2)
+orchestration/    Airflow DAGs (daily incremental + weekly full-refresh) + DagBag CI tests
 scripts/          qa_audit.py — Python row-count reconciliation (trust-but-verify)
 runbooks/         declarative runbooks (add-a-new-mart, model-review, qa, ai-assisted-delivery)
 ```
@@ -115,6 +117,7 @@ graph LR
 ## Stack
 - **Warehouse:** BigQuery (`bigquery-public-data.thelook_ecommerce`)
 - **Transformation:** dbt (staging views, marts as tables, one incremental fact, one SCD-2 snapshot)
+- **Orchestration:** Airflow 3 (`orchestration/` — schedules encode the platform's known failure mode)
 - **Verification:** Python (`scripts/qa_audit.py`)
 
 ## Quickstart
@@ -187,12 +190,20 @@ failure mode and procedure are documented in [`runbooks/qa-checklist.md`](runboo
 That is exactly what relationship tests on incremental facts are for: catching upstream drift
 at build time, not when a dashboard number looks wrong.
 
+## Orchestration
+
+Airflow 3 DAGs in [`orchestration/`](orchestration/) — a daily incremental build and a weekly
+`--full-refresh` rebuild, both ending in `qa_audit.py` as a separate verification task. The
+two schedules aren't boilerplate: the weekly rebuild exists specifically to bound the
+source-regeneration drift documented above. DAG structure (imports, dependencies, retry
+policy, which DAG full-refreshes) is enforced by DagBag tests in CI on every push.
+
 ## Governance
 See [`GOVERNANCE.md`](GOVERNANCE.md) — environment separation, no-deletion policy, PR promotion, approval gate.
 
 ## Roadmap
 Two deliberate next iterations (scoped, not aspirational):
-- **Orchestration** — Airflow DAG artifact with a DagBag CI test
+- **dbt docs on GitHub Pages** — browsable docs + DAG without cloning the repo
 - **Grain-assertion macro** (`dbt_utils`) — reusable uniqueness/grain guards across facts
 
 ---
