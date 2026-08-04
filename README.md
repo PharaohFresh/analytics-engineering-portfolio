@@ -3,6 +3,8 @@
 [![dbt-ci](https://github.com/PharaohFresh/analytics-engineering-portfolio/actions/workflows/dbt-ci.yml/badge.svg)](https://github.com/PharaohFresh/analytics-engineering-portfolio/actions/workflows/dbt-ci.yml)
 [![airflow-ci](https://github.com/PharaohFresh/analytics-engineering-portfolio/actions/workflows/airflow-ci.yml/badge.svg)](https://github.com/PharaohFresh/analytics-engineering-portfolio/actions/workflows/airflow-ci.yml)
 
+**[Browse the live dbt docs →](https://pharaohfresh.github.io/analytics-engineering-portfolio/)** — full catalog, column docs, tests, and interactive lineage, republished by CI after every green build on `main`.
+
 A governed, agentic analytics-engineering platform built on Google's
 `bigquery-public-data.thelook_ecommerce` sample data — a synthetic direct-to-consumer
 retail store. Orders, customers, products, order items, and distribution centers are
@@ -202,8 +204,7 @@ policy, which DAG full-refreshes) is enforced by DagBag tests in CI on every pus
 See [`GOVERNANCE.md`](GOVERNANCE.md) — environment separation, no-deletion policy, PR promotion, approval gate.
 
 ## Roadmap
-Two deliberate next iterations (scoped, not aspirational):
-- **dbt docs on GitHub Pages** — browsable docs + DAG without cloning the repo
+One deliberate next iteration (scoped, not aspirational):
 - **Grain-assertion macro** (`dbt_utils`) — reusable uniqueness/grain guards across facts
 
 ---

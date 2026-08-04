@@ -54,3 +54,64 @@ jobs:
           BQ_PROJECT: career-analytics-portfolio
           BQ_DATASET: dbt_ci
         run: python scripts/qa_audit.py
+
+  # Publish dbt docs to GitHub Pages. Runs only after a green build on main, so the
+  # published catalog always reflects tables that exist and just passed the test suite.
+  docs:
+    if: github.event_name != 'pull_request'
+    needs: build-and-audit
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dbt
+        run: pip install dbt-bigquery
+
+      - name: Write service-account keyfile from secret
+        env:
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+        run: printf '%s' "$GCP_SA_KEY" > "$RUNNER_TEMP/gcp_sa_key.json"
+
+      - name: Write CI profile
+        run: |
+          mkdir -p ci
+          cat > ci/profiles.yml <<EOF
+          analytics_engineering_portfolio:
+            target: ci
+            outputs:
+              ci:
+                type: bigquery
+                method: service-account
+                keyfile: $RUNNER_TEMP/gcp_sa_key.json
+                project: career-analytics-portfolio
+                dataset: dbt_ci
+                location: US
+                threads: 4
+                priority: interactive
+          EOF
+
+      # --static embeds manifest + catalog into one self-contained HTML file
+      - name: Generate static docs
+        run: dbt docs generate --static --profiles-dir ci
+
+      - name: Stage site
+        run: mkdir -p site && cp target/static_index.html site/index.html
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
