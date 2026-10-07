@@ -17,3 +17,4 @@ jobs:
       - run: python -m pytest offline_tests -q
       - run: python -m case_studies.grain_contracts --output artifacts/grain
       - run: python -m case_studies.retail_telemetry --output artifacts/telemetry
+      - run: python -m case_studies.fiscal_attainment --output artifacts/dashboard

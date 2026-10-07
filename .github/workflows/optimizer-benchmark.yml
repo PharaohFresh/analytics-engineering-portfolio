@@ -1,0 +1,42 @@
+name: public-bigquery-experiment
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/optimizer-benchmark.yml'
+permissions:
+  contents: read
+concurrency:
+  group: portfolio-optimizer-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  measured-public-queries:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: PharaohFresh/governed-query-optimizer
+          ref: 63f115ed84ccfde1d31c85de8ad99eebf4ad0e83
+          path: _optimizer
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install pinned BigQuery client
+        run: python -m pip install google-cloud-bigquery==3.42.1
+      - name: Write existing personal portfolio CI credentials
+        env:
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+        run: |
+          umask 077
+          printf '%s' "$GCP_SA_KEY" > "$RUNNER_TEMP/gcp_sa_key.json"
+      - name: Compare frozen public queries and record actual uncached jobs
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/gcp_sa_key.json
+        run: python _optimizer/benchmarks/bigquery/run.py --output artifacts/bigquery-experiment
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bounded-bigquery-experiment
+          path: artifacts/bigquery-experiment
