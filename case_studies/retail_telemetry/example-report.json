@@ -1,0 +1,87 @@
+{
+  "data_origin": "invented sessions, event IDs and authorization references",
+  "summary": {
+    "sessions": 5,
+    "unique_events": 15,
+    "payment_attempts": 8,
+    "recovered_retry_sessions": 2,
+    "authorization_review_candidates": 1,
+    "printer_failure_sessions": 1,
+    "cross_midnight_sessions": 1
+  },
+  "events_by_utc_partition": {
+    "2026-09-01": 13,
+    "2026-09-02": 2
+  },
+  "sessions": [
+    {
+      "session_id": "session-midnight",
+      "site": "north",
+      "payment_attempts": 2,
+      "distinct_authorizations": 1,
+      "failed_attempts": 1,
+      "recovered_retry": true,
+      "authorization_review_candidate": false,
+      "printer_failures": 0,
+      "checkout_completed": true,
+      "crosses_utc_midnight": true,
+      "start_partition_authorizations": 0
+    },
+    {
+      "session_id": "session-normal",
+      "site": "north",
+      "payment_attempts": 1,
+      "distinct_authorizations": 1,
+      "failed_attempts": 0,
+      "recovered_retry": false,
+      "authorization_review_candidate": false,
+      "printer_failures": 0,
+      "checkout_completed": true,
+      "crosses_utc_midnight": false,
+      "start_partition_authorizations": 1
+    },
+    {
+      "session_id": "session-printer",
+      "site": "south",
+      "payment_attempts": 1,
+      "distinct_authorizations": 1,
+      "failed_attempts": 0,
+      "recovered_retry": false,
+      "authorization_review_candidate": false,
+      "printer_failures": 1,
+      "checkout_completed": true,
+      "crosses_utc_midnight": false,
+      "start_partition_authorizations": 1
+    },
+    {
+      "session_id": "session-retry",
+      "site": "north",
+      "payment_attempts": 2,
+      "distinct_authorizations": 1,
+      "failed_attempts": 1,
+      "recovered_retry": true,
+      "authorization_review_candidate": false,
+      "printer_failures": 0,
+      "checkout_completed": true,
+      "crosses_utc_midnight": false,
+      "start_partition_authorizations": 1
+    },
+    {
+      "session_id": "session-review",
+      "site": "south",
+      "payment_attempts": 2,
+      "distinct_authorizations": 2,
+      "failed_attempts": 0,
+      "recovered_retry": false,
+      "authorization_review_candidate": true,
+      "printer_failures": 0,
+      "checkout_completed": true,
+      "crosses_utc_midnight": false,
+      "start_partition_authorizations": 2
+    }
+  ],
+  "identical_event_records_ignored": 0,
+  "duplicate_attempt_records_ignored": 0,
+  "routine_api_calls_excluded_from_incident_flags": 1,
+  "limits": "Authorization candidates require settlement/provider review; no duplicate charge or financial loss proven."
+}

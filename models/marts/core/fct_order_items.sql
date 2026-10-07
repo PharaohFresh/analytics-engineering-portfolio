@@ -7,7 +7,9 @@
 }}
 
 -- Order-item fact. Grain: one row per order item (one physical unit).
--- Incremental on item_created_at to mirror high-volume transactional fact patterns.
+-- Merge all current source rows: creation time is not a reliable change watermark.
+-- This deliberately trades source-scan efficiency for correct mutable item state.
+-- Late arrivals, timestamp ties, returns and current product enrichment all update.
 -- Landmine: thelook_ecommerce is periodically regenerated upstream (keys reassigned),
 -- so rows merged from a prior generation become orphans vs. the rebuilt fct_orders.
 -- The relationships test catches it; recovery is `dbt build --full-refresh`.
@@ -35,8 +37,3 @@ select
     unit_cost,
     gross_margin
 from enriched
-
-{% if is_incremental() %}
--- only process items newer than what's already loaded
-where item_created_at > (select coalesce(max(item_created_at), timestamp '1900-01-01') from {{ this }})
-{% endif %}

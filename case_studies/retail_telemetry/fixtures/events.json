@@ -1,0 +1,26 @@
+{
+  "sessions": [
+    {"session_id": "session-normal", "site": "north", "started_at": "2026-09-01T10:00:00Z", "ended_at": "2026-09-01T10:05:00Z"},
+    {"session_id": "session-retry", "site": "north", "started_at": "2026-09-01T11:00:00Z", "ended_at": "2026-09-01T11:07:00Z"},
+    {"session_id": "session-review", "site": "south", "started_at": "2026-09-01T12:00:00Z", "ended_at": "2026-09-01T12:08:00Z"},
+    {"session_id": "session-printer", "site": "south", "started_at": "2026-09-01T13:00:00Z", "ended_at": "2026-09-01T13:06:00Z"},
+    {"session_id": "session-midnight", "site": "north", "started_at": "2026-09-01T23:58:00Z", "ended_at": "2026-09-02T00:05:00Z"}
+  ],
+  "events": [
+    {"event_id": "event-01", "session_id": "session-normal", "occurred_at": "2026-09-01T10:01:00Z", "kind": "api_call", "duration_ms": 30000},
+    {"event_id": "event-02", "session_id": "session-normal", "occurred_at": "2026-09-01T10:03:00Z", "kind": "payment_attempt", "attempt_id": "attempt-01", "outcome": "approved", "authorization_id": "auth-01"},
+    {"event_id": "event-03", "session_id": "session-normal", "occurred_at": "2026-09-01T10:04:00Z", "kind": "checkout_completed"},
+    {"event_id": "event-04", "session_id": "session-retry", "occurred_at": "2026-09-01T11:02:00Z", "kind": "payment_attempt", "attempt_id": "attempt-02", "outcome": "declined", "authorization_id": null},
+    {"event_id": "event-05", "session_id": "session-retry", "occurred_at": "2026-09-01T11:04:00Z", "kind": "payment_attempt", "attempt_id": "attempt-03", "outcome": "approved", "authorization_id": "auth-02"},
+    {"event_id": "event-06", "session_id": "session-retry", "occurred_at": "2026-09-01T11:06:00Z", "kind": "checkout_completed"},
+    {"event_id": "event-07", "session_id": "session-review", "occurred_at": "2026-09-01T12:02:00Z", "kind": "payment_attempt", "attempt_id": "attempt-04", "outcome": "approved", "authorization_id": "auth-03"},
+    {"event_id": "event-08", "session_id": "session-review", "occurred_at": "2026-09-01T12:04:00Z", "kind": "payment_attempt", "attempt_id": "attempt-05", "outcome": "approved", "authorization_id": "auth-04"},
+    {"event_id": "event-09", "session_id": "session-review", "occurred_at": "2026-09-01T12:07:00Z", "kind": "checkout_completed"},
+    {"event_id": "event-10", "session_id": "session-printer", "occurred_at": "2026-09-01T13:02:00Z", "kind": "payment_attempt", "attempt_id": "attempt-06", "outcome": "approved", "authorization_id": "auth-05"},
+    {"event_id": "event-11", "session_id": "session-printer", "occurred_at": "2026-09-01T13:04:00Z", "kind": "printer_failure"},
+    {"event_id": "event-12", "session_id": "session-printer", "occurred_at": "2026-09-01T13:05:00Z", "kind": "checkout_completed"},
+    {"event_id": "event-13", "session_id": "session-midnight", "occurred_at": "2026-09-01T23:59:00Z", "kind": "payment_attempt", "attempt_id": "attempt-07", "outcome": "declined", "authorization_id": null},
+    {"event_id": "event-14", "session_id": "session-midnight", "occurred_at": "2026-09-02T00:02:00Z", "kind": "payment_attempt", "attempt_id": "attempt-08", "outcome": "approved", "authorization_id": "auth-06"},
+    {"event_id": "event-15", "session_id": "session-midnight", "occurred_at": "2026-09-02T00:04:00Z", "kind": "checkout_completed"}
+  ]
+}

@@ -1,210 +1,150 @@
-# Retail / DTC Analytics Platform (dbt + BigQuery)
+# Retail Analytics Platform: dbt, BigQuery and Business Contracts
 
+A documented retail warehouse with order and physical-item facts, conformed dimensions, finance marts, semantic metrics and independent reconciliation. Two runnable case studies show how to prevent revenue fan-out and model checkout events across midnight.
+
+**Author:** [Amir Ebrahim](https://www.linkedin.com/in/amirebrahim/) | Senior Analytics Engineer, Austin, Texas
+
+[![offline-ci](https://github.com/PharaohFresh/analytics-engineering-portfolio/actions/workflows/offline-ci.yml/badge.svg)](https://github.com/PharaohFresh/analytics-engineering-portfolio/actions/workflows/offline-ci.yml)
 [![dbt-ci](https://github.com/PharaohFresh/analytics-engineering-portfolio/actions/workflows/dbt-ci.yml/badge.svg)](https://github.com/PharaohFresh/analytics-engineering-portfolio/actions/workflows/dbt-ci.yml)
 [![airflow-ci](https://github.com/PharaohFresh/analytics-engineering-portfolio/actions/workflows/airflow-ci.yml/badge.svg)](https://github.com/PharaohFresh/analytics-engineering-portfolio/actions/workflows/airflow-ci.yml)
 
-A governed, agentic analytics-engineering platform built on Google's
-`bigquery-public-data.thelook_ecommerce` sample data — a synthetic direct-to-consumer
-retail store. Orders, customers, products, order items, and distribution centers are
-modeled into trustworthy, documented, self-serve marts.
+The business problem is concrete: a dashboard can be wrong even when a pipeline succeeds. A creation-time watermark can miss a return; a customization join can repeat a sale; a session partition can omit a payment. This project makes those failure modes visible and tests the chosen contracts.
 
-This repo is deliberately **not** a tutorial clone. It demonstrates four things a technical screener
-actually looks for:
+The warehouse uses Google's public `bigquery-public-data.thelook_ecommerce` sample dataset. Offline cases use original, invented records. No employer source code, private business records or credentials are included.
 
-1. **Dimensional modeling with intent** — explicit grain decisions, conformed dims, staging → intermediate → marts.
-2. **Testing & documentation like someone who has owned a platform** — generic + singular tests, source definitions, described models.
-3. **Governance** — dev/prod separation, no-deletion policy, PR-based promotion, a human-approval gate before prod. (Rare in a portfolio.)
-4. **Governed agentic delivery** — AI used as an accountable accelerator, with the receipts (`runbooks/ai-assisted-delivery.md`).
+## A three-minute reviewer path
 
-> Companion repo: the governed agentic delivery model that operates this warehouse —
-> multi-agent plan → approval gate → execute → verify → log — lives at
-> [`agentic-analytics-delivery`](https://github.com/PharaohFresh/agentic-analytics-delivery).
+| Reader | Start here | What to look for |
+|---|---|---|
+| Recruiter or hiring manager | [Grain case](case_studies/grain_contracts/README.md) and [checkout case](case_studies/retail_telemetry/README.md) | A business problem, a reproducible result and a clear interpretation |
+| Analytics engineer | [Item fact](models/marts/core/fct_order_items.sql), [finance marts](models/marts/finance/) and [tests](tests/) | Explicit grain, mutable-source handling and financial reconciliation |
+| Data/platform engineer | [Independent contracts](scripts/qa_contracts.py), [orchestration](orchestration/README.md) and [regressions](offline_tests/) | Same-count corruption, target consistency, retries and rebuild policy |
 
-## Architecture
+## Capabilities demonstrated
 
-```
-models/
-  staging/        stg_* (1:1 with source, renamed/typed) + sources + generic tests
-  intermediate/   int_order_items_enriched, int_customer_orders
-  marts/
-    core/         dim_customers, dim_products, dim_distribution_centers, dim_dates, fct_orders, fct_order_items
-    finance/      mart_revenue_by_segment, mart_product_category_margin   ← business marts
-    _exposures.yml  declared dashboard consumer (impact analysis via `dbt ls`)
-  semantic/       MetricFlow semantic models + 9 governed metrics
-snapshots/        snap_products (SCD-2)
-orchestration/    Airflow DAGs (daily incremental + weekly full-refresh) + DagBag CI tests
-scripts/          qa_audit.py — Python row-count reconciliation (trust-but-verify)
-runbooks/         declarative runbooks (add-a-new-mart, model-review, qa, ai-assisted-delivery)
-```
+| Capability | Executable evidence |
+|---|---|
+| Dimensional modeling | Staging, enrichment, order/item facts and customer/product/date/center dimensions |
+| Business grain | Three orders, five physical units and seven customization records remain separate metrics |
+| Mutable-source correctness | Older returns, tied timestamps, late arrivals and changed current product costs are reselected |
+| Quality beyond counts | Eleven read-only checks compare keys, item values and parent assignments against source |
+| Financial reporting | Composite mart grain checks and revenue/margin/unit/return-total reconciliation |
+| Temporal event modeling | A session spanning two UTC partitions retains the next-day authorization |
+| Governed consumption | Nine declared MetricFlow metrics, a product SCD-2 snapshot and a dashboard exposure |
+| Operational consistency | Airflow build and QA share an explicit project, dataset and dbt target |
 
-### Lineage
+## Architecture and grain
 
 ```mermaid
-graph LR
-    subgraph Source["bigquery-public-data.thelook_ecommerce"]
-        users[(users)]
-        orders[(orders)]
-        order_items[(order_items)]
-        products[(products)]
-        dcs[(distribution_centers)]
-    end
-
-    subgraph Staging["staging (views)"]
-        stg_customers
-        stg_orders
-        stg_order_items
-        stg_products
-        stg_dcs[stg_distribution_centers]
-    end
-
-    subgraph Intermediate["intermediate"]
-        int_oie[int_order_items_enriched]
-        int_co[int_customer_orders]
-    end
-
-    subgraph Core["marts/core"]
-        dim_customers
-        dim_products
-        dim_dcs[dim_distribution_centers]
-        dim_dates
-        fct_orders
-        fct_order_items[/fct_order_items · incremental/]
-    end
-
-    subgraph Finance["marts/finance"]
-        m_rev[mart_revenue_by_segment]
-        m_margin[mart_product_category_margin]
-    end
-
-    users --> stg_customers
-    orders --> stg_orders
-    order_items --> stg_order_items
-    products --> stg_products
-    dcs --> stg_dcs
-
-    stg_order_items --> int_oie
-    stg_orders --> int_oie
-    stg_products --> int_oie
-    stg_dcs --> int_oie
-    stg_order_items --> int_co
-
-    stg_customers --> dim_customers
-    int_co --> dim_customers
-    stg_products --> dim_products
-    stg_dcs --> dim_products
-    stg_dcs --> dim_dcs
-    stg_orders --> dim_dates
-    stg_order_items --> dim_dates
-    stg_orders --> fct_orders
-    int_oie --> fct_orders
-    int_oie --> fct_order_items
-    stg_products --> snap[snap_products · SCD-2]
-
-    fct_order_items --> m_rev
-    dim_customers --> m_rev
-    fct_order_items --> m_margin
-
-    fct_orders --> sem[semantic layer · 9 metrics]
-    fct_order_items --> sem
-    m_rev --> exp{{exposure: revenue_margin_overview}}
-    m_margin --> exp
+flowchart LR
+    S[Public retail source] --> ST[Staging views]
+    ST --> I[Item and customer enrichment]
+    ST --> D[Conformed dimensions]
+    I --> O[Order fact]
+    I --> F[Physical-item fact]
+    D --> R[Finance marts]
+    F --> R
+    O --> M[Semantic metrics]
+    F --> M
+    R --> E[Declared dashboard exposure]
+    ST --> Q[Independent source-to-fact QA]
+    F --> Q
+    O --> Q
 ```
 
-### Grain (stated explicitly — the thing screeners check)
-- `fct_orders` — **one row per order** (`order_key`).
-- `fct_order_items` — **one row per order item / physical unit** (`order_item_key`, the natural item id); **incremental** on `item_created_at` to mirror high-volume fact patterns.
+- `fct_orders`: one row per `order_key`.
+- `fct_order_items`: one row per `order_item_key`, one physical unit in this source.
+- `mart_revenue_by_segment`: one row per `(traffic_source, country)`.
+- `mart_product_category_margin`: one row per `(department, category)`.
+- `snap_products`: separate SCD-2 product history. The fact currently joins the current product record rather than performing a historical cost lookup.
 
-## Stack
-- **Warehouse:** BigQuery (`bigquery-public-data.thelook_ecommerce`)
-- **Transformation:** dbt (staging views, marts as tables, one incremental fact, one SCD-2 snapshot)
-- **Orchestration:** Airflow 3 (`orchestration/` — schedules encode the platform's known failure mode)
-- **Verification:** Python (`scripts/qa_audit.py`)
+The declared [exposure](models/marts/_exposures.yml) records the finance marts' consumer. It is dependency metadata; this repository does not contain a live BI dashboard.
 
-## Quickstart
+## Run the offline examples first
+
+Use Python 3.12 or newer in a virtual environment. No warehouse account is needed for these commands. From the repository root:
+
 ```bash
-pip install dbt-bigquery
-gcloud auth application-default login          # OAuth via Application Default Credentials
-cp profiles.yml.example ~/.dbt/profiles.yml    # then set your GCP project (never commit secrets)
-dbt deps        # installs packages if packages.yml is present
-dbt build       # runs models + tests in DAG order
-dbt docs generate && dbt docs serve
+python -m pip install -r requirements-offline.txt
+python -m pytest offline_tests -q
+python -m case_studies.grain_contracts --output artifacts/grain
+python -m case_studies.retail_telemetry --output artifacts/telemetry
+```
 
-# independent reconciliation (after a build)
-export BQ_PROJECT=career-analytics-portfolio BQ_DATASET=dbt_dev
+On Windows, `py -m venv .venv` creates an environment; run its interpreter as `.venv\Scripts\python.exe`. On macOS/Linux, use `python3 -m venv .venv` and `.venv/bin/python`. The two case-study demos themselves need only the standard library.
+
+| Example | Reproduced result | Committed proof |
+|---|---|---|
+| Customization join | Naive join reports 85,000 cents; correct five-item contract reports 50,000 cents | [Grain report](case_studies/grain_contracts/example-report.json) |
+| Missing catalog row | Inner join loses 12,000 cents; left join retains the unmapped valid sale | [Corrected query](case_studies/grain_contracts/fixtures/grain_safe.sql) |
+| Cross-midnight checkout | Full session has one authorization; start-date-only filtering finds zero | [Telemetry report](case_studies/retail_telemetry/example-report.json) |
+| Payment signals | Two recovered retries, one authorization-review candidate and one printer incident | [Interpretation and limits](case_studies/retail_telemetry/README.md) |
+
+Multiple authorizations are review candidates, not confirmed duplicate charges. Routine API duration is excluded from incident flags. Each case explains which observations justify the result.
+
+## Build the BigQuery warehouse
+
+Use a separate Python 3.13 environment for the pinned warehouse dependencies. The build needs your own BigQuery project, dataset permissions, billing/quota capacity and Application Default Credentials. Query and storage costs depend on your account and workload; no free-tier guarantee is made.
+
+```bash
+python -m pip install -r requirements-warehouse.txt
+gcloud auth application-default login
+mkdir -p ~/.dbt
+cp profiles.yml.example ~/.dbt/profiles.yml
+export DBT_TARGET=dev BQ_PROJECT=your-gcp-project BQ_DATASET=dbt_dev
+dbt build --target dev --full-refresh
 python scripts/qa_audit.py
+dbt docs generate --target dev
+dbt docs serve
 ```
 
-> The source is a public dataset; you only pay BigQuery's free-tier query/storage in **your own**
-> project. The marts are tiny — well within the monthly free tier.
+The shell setup above is Bash. In PowerShell, copy the [profile template](profiles.yml.example) to `$HOME\.dbt\profiles.yml`, then set `$env:DBT_TARGET='dev'`, `$env:BQ_PROJECT='your-gcp-project'` and `$env:BQ_DATASET='dbt_dev'`. Never commit the populated profile or credentials.
 
-## Semantic layer
-Metric definitions live in one governed place (`models/semantic/`), not re-derived in every
-dashboard: two semantic models (`orders`, `order_items`) expose 9 metrics — revenue, gross
-margin, AOV, return rate, margin rate, active customers, and friends. `dim_dates` doubles as
-the MetricFlow time spine, and ratio metrics resolve across semantic models (AOV = item-grain
-revenue ÷ order-grain count). Validated against the warehouse with `mf validate-configs`:
+The independent QA script requires both `BQ_PROJECT` and `BQ_DATASET`; it does not guess the built target. Exit code `0` means all eleven contracts passed. Exit code `1` means a failed check or invalid runtime configuration.
 
+## Why the incremental strategy changed
+
+`item_created_at > max(item_created_at)` only sees newly created records. It misses a return on an older item, a late-arriving item and a new item tied with the maximum timestamp. It also cannot refresh a current product cost/category lookup for an old item.
+
+The fact now selects all current enriched source rows and uses dbt's keyed BigQuery merge. This preserves repeat-run idempotency and updates mutable values, at the cost of scanning the current source every run. It is a correctness-first reference strategy, not a claim of low scan cost or a general high-volume CDC design.
+
+Merge does not remove rows that disappeared from source. Independent key coverage/count checks detect that state; a reviewed `dbt build --target dev --full-refresh` realigns the fact. The weekly DAG provides a scheduled rebuild mode. Production-scale designs should choose a trustworthy update watermark, change log or bounded reprocessing policy and explicitly handle deletions.
+
+`unit_cost`, category and margin reflect the current product record. Returns are a flag; sales totals include source sale prices rather than netting refunds. Sale-time cost accounting and recognized/net revenue need additional business contracts.
+
+## Quality and verification
+
+- Generic dbt tests assert source/core keys and relationships.
+- Four [singular finance tests](tests/) assert each composite grain and reconcile aggregate money, units and returns. Public sample prices are floating-point values; money checks use an explicit `max(1e-6, abs(expected) * 1e-9)` tolerance.
+- Eleven [independent QA queries](scripts/qa_contracts.py) check row counts, unique/non-null keys, bidirectional source coverage, orphan items, prices and item state/parent/product enrichment by stable key.
+- [Offline regressions](offline_tests/test_warehouse_sql.py) exercise the actual rendered item/enrichment/finance SQL and singular tests on invented SQLite tables. They reproduce old returns, timestamp ties, late arrivals, changed costs/categories, missing source rows and same-count corruption, including offsetting price errors.
+- [Configuration tests](offline_tests/test_configuration.py) render the actual profile template and compare default/overridden targets with the Airflow environment helper. Linux DagBag tests verify imports, dependencies, task environments and retry policy.
+
+The SQLite harness translates selected BigQuery SQL and simulates keyed replacement. It verifies source selection and these business contracts; it does not execute dbt-generated BigQuery MERGE DML or prove all BigQuery numeric/dialect behavior. Credentialed CI remains the warehouse engine check.
+
+Local October 6 verification: 51 offline tests and both demos passed on Python 3.12 and 3.14; native `dbt parse` passed on Python 3.13 with dbt-core 1.11.11/dbt-bigquery 1.11.3 using a dummy OAuth profile. No fresh local BigQuery build or Linux Airflow run is claimed. The older July/August hosted successes describe earlier revisions; use current [Actions](https://github.com/PharaohFresh/analytics-engineering-portfolio/actions) and PR checks for the delivered revision.
+
+## CI, catalog and promotion
+
+Three workflows separate portable contracts, Linux Airflow structure and credentialed BigQuery build/QA. BigQuery CI builds `dbt_ci` with a full refresh; runs are serialized because they share that dataset. This pipeline does not deploy the `prod` profile.
+
+Static dbt catalog publication is configured to run only after a successful build on `main`. GitHub Pages must be enabled with GitHub Actions as its source. Until a deployment succeeds, no live catalog is claimed; local `dbt docs serve` works after a warehouse build.
+
+[Governance](GOVERNANCE.md) retains separate development/production targets and human review before production promotion. A passing local demo or PR check does not authorize that promotion.
+
+## Repository map
+
+```text
+models/staging/       source contracts and typed views
+models/intermediate/ item/customer enrichment
+models/marts/        dimensions, facts, finance marts and exposure
+models/semantic/     two semantic models and nine metric definitions
+snapshots/           product SCD-2 history
+scripts/             independent BigQuery QA and reusable query contracts
+orchestration/       daily keyed merge, weekly rebuild and DagBag tests
+offline_tests/       actual-SQL regressions and configuration/business checks
+case_studies/        original grain and complete-session examples
+runbooks/            model review, QA, mart creation and assisted delivery
 ```
-mf query --metrics total_revenue,order_count,average_order_value,return_rate --group-by metric_time__year
 
-metric_time__year    total_revenue    order_count    average_order_value    return_rate
------------------  ---------------  -------------  ---------------------  -------------
-2024                    1,859,960          21,600                  86.11         0.0961
-2025                    2,824,870          32,853                  85.99         0.1040
-2026                    2,971,470          33,835                  87.82         0.0988
-```
-
-Downstream consumption is declared, not implied: the finance marts feed a dashboard registered
-as an exposure (`models/marts/_exposures.yml`), so
-`dbt ls --select +exposure:revenue_margin_overview` answers "what breaks this dashboard?"
-before a change ships.
-
-## Verification (receipts, not claims)
-
-Latest `dbt build` against BigQuery — 2026-07-11:
-
-```
-Finished running 1 exposure, 1 incremental model, 1 snapshot, 7 table models,
-39 data tests, 5 view models in 0 hours 0 minutes and 26.47 seconds (26.47s).
-
-Completed successfully
-
-Done. PASS=53 WARN=0 ERROR=0 SKIP=0 NO-OP=1 TOTAL=54
-```
-
-The suite has caught a real integrity break, not just hypothetical ones. `thelook_ecommerce`
-is a live dataset that Google periodically regenerates, and a routine build failed the
-referential-integrity test on the incremental fact — it was carrying rows from a previous
-data generation whose orders no longer existed:
-
-```
-Failure in test relationships_fct_order_items_order_key__order_key__ref_fct_orders_
-  Got 96 results, configured to fail if != 0
-
-Done. PASS=52 WARN=0 ERROR=1 SKIP=0 NO-OP=1 TOTAL=54
-```
-
-Diagnosis: source-regeneration drift against incremental state. Resolution: `dbt build
---full-refresh` realigns the incremental fact with the current source generation — the
-failure mode and procedure are documented in [`runbooks/qa-checklist.md`](runbooks/qa-checklist.md).
-That is exactly what relationship tests on incremental facts are for: catching upstream drift
-at build time, not when a dashboard number looks wrong.
-
-## Orchestration
-
-Airflow 3 DAGs in [`orchestration/`](orchestration/) — a daily incremental build and a weekly
-`--full-refresh` rebuild, both ending in `qa_audit.py` as a separate verification task. The
-two schedules aren't boilerplate: the weekly rebuild exists specifically to bound the
-source-regeneration drift documented above. DAG structure (imports, dependencies, retry
-policy, which DAG full-refreshes) is enforced by DagBag tests in CI on every push.
-
-## Governance
-See [`GOVERNANCE.md`](GOVERNANCE.md) — environment separation, no-deletion policy, PR promotion, approval gate.
-
-## Roadmap
-Two deliberate next iterations (scoped, not aspirational):
-- **dbt docs on GitHub Pages** — browsable docs + DAG without cloning the repo
-- **Grain-assertion macro** (`dbt_utils`) — reusable uniqueness/grain guards across facts
-
----
-*Built by Amir Ebrahim — senior analytics engineer. [linkedin.com/in/amirebrahim](https://linkedin.com/in/amirebrahim)*
+Related projects: [governed lineage delivery](https://github.com/PharaohFresh/agentic-analytics-delivery), [query optimization](https://github.com/PharaohFresh/governed-query-optimizer) and [booking revenue reconciliation](https://github.com/PharaohFresh/revenue-reconciliation-pipeline). [MIT license](LICENSE).

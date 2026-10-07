@@ -1,0 +1,1 @@
+"""Independent warehouse validation helpers."""
