@@ -1,6 +1,21 @@
 version: 2
 
 exposures:
+  - name: fiscal_sales_plan
+    label: Fiscal Sales and Plan
+    type: dashboard
+    maturity: medium
+    url: https://pharaohfresh.github.io/analytics-engineering-portfolio/dashboard/
+    description: >
+      Interactive completed February-April 2026 item-created month/department cohort with invented
+      fiscal targets, retained order value, returned-item value and current-cost
+      indicative margin. Independently reconciled before Pages publication; not cash
+      or GAAP revenue. Preserves empty periods and missing plan coverage.
+    depends_on:
+      - ref('mart_fiscal_attainment')
+    owner:
+      name: Amir Ebrahim
+      email: amir.m.ebrahim@gmail.com
   - name: revenue_margin_overview
     label: Revenue & Margin Overview
     type: dashboard

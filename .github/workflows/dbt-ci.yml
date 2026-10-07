@@ -63,6 +63,16 @@ jobs:
           BQ_DATASET: dbt_ci
         run: python scripts/qa_audit.py
 
+      - name: Reconcile fiscal dashboard against item fact
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/gcp_sa_key.json
+        run: python -m case_studies.fiscal_attainment --warehouse --output artifacts/fiscal-preview
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: public-fiscal-preview
+          path: artifacts/fiscal-preview
+
   # Publish dbt docs to GitHub Pages. Runs only after a green build on main, so the
   # published catalog always reflects tables that exist and just passed the test suite.
   docs:
@@ -112,8 +122,16 @@ jobs:
       - name: Generate static docs
         run: dbt docs generate --static --profiles-dir ci
 
+      - name: Build independently reconciled fiscal dashboard
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/gcp_sa_key.json
+        run: python -m case_studies.fiscal_attainment --warehouse --output artifacts/dashboard
+
       - name: Stage site
-        run: mkdir -p site && cp target/static_index.html site/index.html
+        run: |
+          mkdir -p site
+          cp target/static_index.html site/index.html
+          cp -r artifacts/dashboard site/dashboard
 
       - uses: actions/configure-pages@v5
 

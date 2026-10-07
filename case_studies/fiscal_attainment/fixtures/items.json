@@ -1,0 +1,11 @@
+[
+  {"order_item_key":1,"order_key":101,"department":"Men","order_date":"2026-02-01","item_status":"Complete","is_returned":false,"price_cents":10000,"cost_cents":6000},
+  {"order_item_key":2,"order_key":101,"department":"Men","order_date":"2026-02-12","item_status":"Returned","is_returned":true,"price_cents":8000,"cost_cents":4000},
+  {"order_item_key":3,"order_key":102,"department":"Women","order_date":"2026-02-20","item_status":"Complete","is_returned":false,"price_cents":20000,"cost_cents":8000},
+  {"order_item_key":4,"order_key":103,"department":"Men","order_date":"2026-03-05","item_status":"Complete","is_returned":false,"price_cents":15000,"cost_cents":9000},
+  {"order_item_key":5,"order_key":104,"department":"Women","order_date":"2026-03-31","item_status":"Cancelled","is_returned":false,"price_cents":24000,"cost_cents":12000},
+  {"order_item_key":6,"order_key":105,"department":"Men","order_date":"2026-04-01","item_status":"Processing","is_returned":false,"price_cents":9000,"cost_cents":5000},
+  {"order_item_key":7,"order_key":106,"department":"Women","order_date":"2026-04-30","item_status":"Complete","is_returned":false,"price_cents":30000,"cost_cents":10000},
+  {"order_item_key":8,"order_key":107,"department":null,"order_date":"2026-04-30","item_status":"Complete","is_returned":false,"price_cents":5000,"cost_cents":2000},
+  {"order_item_key":9,"order_key":108,"department":"Men","order_date":"2026-05-01","item_status":"Complete","is_returned":false,"price_cents":6000,"cost_cents":3000}
+]
