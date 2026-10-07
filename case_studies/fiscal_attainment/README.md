@@ -6,7 +6,7 @@ The original offline fixture has nine item records, with eight inside February-A
 
 ## Review the working view
 
-The Pages workflow publishes the [warehouse-backed dashboard](https://pharaohfresh.github.io/analytics-engineering-portfolio/dashboard/) alongside the [dbt catalog](https://pharaohfresh.github.io/analytics-engineering-portfolio/). The source label on each view distinguishes public warehouse data from the original offline fixture. Targets are invented in both cases. The dashboard includes a three-step, roughly 60-second walkthrough; no login or BI license is required.
+The Pages workflow publishes the [warehouse-backed dashboard](https://pharaohfresh.github.io/analytics-engineering-portfolio/dashboard/) alongside the [dbt catalog](https://pharaohfresh.github.io/analytics-engineering-portfolio/). The source label on each view distinguishes public warehouse data from the original offline fixture. Targets are invented in both cases. The public plan scales the small [fixture targets](fixtures/targets.csv) by 1,000 to fit the public dataset's demonstration scale while retaining the same period/department coverage and zero target. Neither plan is a real business budget or evidence of actual target performance. The dashboard includes a three-step, roughly 60-second walkthrough; no login or BI license is required.
 
 For an offline copy:
 
@@ -22,7 +22,7 @@ Open `http://127.0.0.1:8765`. The output directory must be new. Stop the server 
 | Contract | Implemented behavior | Stakeholder implication |
 |---|---|---|
 | Item grain | Reject duplicate item keys; integer cents rounded per source item | A join cannot silently multiply financial value |
-| Completed date cohort | February 1 inclusive, May 1 exclusive; current item state | Later return updates can restate an earlier order month |
+| Completed date cohort | Item-created dates February 1 inclusive, May 1 exclusive; current item state | Later return updates can restate an earlier item month |
 | Fiscal calendar | February start; named by ending year; calendar-month periods | FY2027/FM01 means February 2026, not an employer's 4-4-5 calendar |
 | Full month coverage | Three-month spine crossed with actual/planned departments | An empty period cannot disappear from attainment |
 | Missing versus zero target | Missing plan remains null; a zero plan is a declared value | Unknown coverage is different from unplanned activity against a zero goal |

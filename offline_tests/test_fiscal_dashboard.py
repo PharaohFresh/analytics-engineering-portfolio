@@ -39,6 +39,13 @@ def test_exact_period_boundaries_and_cancelled_exclusion():
     assert aggregate(changed, targets()) == aggregate(items(), targets())
 
 
+def test_public_and_offline_plans_preserve_the_same_coverage_contract():
+    small = {(r['month_start'],r['department']):r['target_cents'] for r in targets()}
+    public = {(r['month_start'],r['department']):r['target_cents'] for r in targets(warehouse=True)}
+    assert set(small) == set(public)
+    assert public == {key:value*1000 for key,value in small.items()}
+
+
 def test_old_return_restates_the_correct_month():
     changed = items()
     changed[0]['is_returned'] = True

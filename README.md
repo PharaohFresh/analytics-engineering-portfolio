@@ -12,7 +12,7 @@ A documented retail warehouse with order and physical-item facts, conformed dime
 
 ![Fiscal dashboard preview showing the original invented fixture, plan gaps and explicit missing-plan coverage](dashboard/preview.png)
 
-*Original offline fixture shown above. The live view labels its public warehouse source and uses the same invented planning targets.*
+*Original offline fixture shown above. The live view labels its public warehouse source and uses separately scaled invented targets with the same fiscal/coverage policy.*
 
 The business problem is concrete: a dashboard can be wrong even when a pipeline succeeds. A creation-time watermark can miss a return; a customization join can repeat a sale; a session partition can omit a payment. This project makes those failure modes visible and tests the chosen contracts.
 
@@ -129,7 +129,7 @@ Merge does not remove rows that disappeared from source. Independent key coverag
 
 The SQLite harness translates selected BigQuery SQL and simulates keyed replacement. It verifies source selection and these business contracts; it does not execute dbt-generated BigQuery MERGE DML or prove all BigQuery numeric/dialect behavior. Credentialed CI remains the warehouse engine check.
 
-Local follow-up verification: 68 offline tests pass on Python 3.12 and 3.14; the three demos run and the dashboard's filters/walkthrough pass at 1440px and 390px widths without page overflow or script errors. Native `dbt parse` passes on Python 3.13 with dbt-core 1.11.11/dbt-bigquery 1.11.3 using a dummy OAuth profile. Use [Actions](https://github.com/PharaohFresh/analytics-engineering-portfolio/actions) for hosted BigQuery build/QA, fiscal readback and Linux Airflow results for the exact revision; local parsing is not a live warehouse build.
+Local follow-up verification: 69 offline tests pass on Python 3.12 and 3.14; the three demos run and the dashboard's filters/walkthrough pass at 1440px and 390px widths without page overflow or script errors. Native `dbt parse` passes on Python 3.13 with dbt-core 1.11.11/dbt-bigquery 1.11.3 using a dummy OAuth profile. Use [Actions](https://github.com/PharaohFresh/analytics-engineering-portfolio/actions) for hosted BigQuery build/QA, fiscal readback and Linux Airflow results for the exact revision; local parsing is not a live warehouse build.
 
 ## CI, catalog and promotion
 

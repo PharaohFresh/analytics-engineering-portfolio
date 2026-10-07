@@ -1,5 +1,5 @@
 -- Demonstration fiscal calendar: February start, fiscal year named by ending year.
--- Fixed completed cohort: February-April 2026. Targets are invented, not business budgets.
+-- Fixed completed item-created cohort: February-April 2026. Targets are invented, not business budgets.
 -- Grain: one row per (month_start, department), including empty and unplanned buckets.
 with items as (
     select *,

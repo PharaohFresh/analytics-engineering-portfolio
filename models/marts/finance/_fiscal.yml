@@ -16,7 +16,7 @@ seeds:
         tests: [not_null]
 models:
   - name: mart_fiscal_attainment
-    description: "Completed February-April 2026 item cohort by month/department, including empty and unplanned buckets. Current-source retained order value is not cash or GAAP revenue; margin uses current product cost. Targets are invented."
+    description: "Completed February-April 2026 item-created-date cohort by month/department, including empty and unplanned buckets. Current-source retained order value is not cash or GAAP revenue; margin uses current product cost. Targets are invented."
     columns:
       - name: month_start
         tests: [not_null]

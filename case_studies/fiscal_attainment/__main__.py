@@ -13,8 +13,9 @@ FIELDS = ('gross_value_cents', 'returned_value_cents', 'retained_value_cents',
 STATUSES = {'Complete', 'Shipped', 'Processing', 'Cancelled', 'Returned'}
 
 
-def targets():
-    with (ROOT / 'seeds/demo_fiscal_targets.csv').open(encoding='utf-8', newline='') as stream:
+def targets(*, warehouse=False):
+    path = ROOT / 'seeds/demo_fiscal_targets.csv' if warehouse else Path(__file__).parent / 'fixtures/targets.csv'
+    with path.open(encoding='utf-8', newline='') as stream:
         return [{**row, 'target_cents': int(row['target_cents'])} for row in csv.DictReader(stream)]
 
 
@@ -107,7 +108,7 @@ def build(output, *, warehouse=False):
         items = json.loads((Path(__file__).parent / 'fixtures/items.json').read_text(encoding='utf-8'))
         observed = None
         origin = 'Original invented items + invented planning targets'
-    rows = aggregate(items, targets())
+    rows = aggregate(items, targets(warehouse=warehouse))
     if observed is not None:
         reconcile(rows, observed)
     report = dict(data_origin=origin, generated_at=datetime.now(timezone.utc).isoformat(),
