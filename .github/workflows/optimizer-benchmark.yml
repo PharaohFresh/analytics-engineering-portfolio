@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: PharaohFresh/governed-query-optimizer
-          ref: 63f115ed84ccfde1d31c85de8ad99eebf4ad0e83
+          ref: 8a4d945cac78bf5c09fa8469978fed1942e6da7c
           path: _optimizer
       - uses: actions/setup-python@v5
         with:
