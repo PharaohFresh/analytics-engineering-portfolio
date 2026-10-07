@@ -1,0 +1,56 @@
+{
+  "data_origin": "invented retail records; integer cents",
+  "contract": "one physical item per item_id; customization records do not create sales",
+  "correct": {
+    "orders": 3,
+    "physical_units": 5,
+    "revenue_cents": 50000,
+    "customization_records": 7,
+    "unmapped_product_units": 1
+  },
+  "naive_customization_join": {
+    "rows": 8,
+    "revenue_cents": 85000
+  },
+  "inner_product_join": {
+    "revenue_cents": 38000
+  },
+  "items": [
+    {
+      "item_id": "item-five",
+      "order_id": "order-three",
+      "sale_cents": 5000,
+      "category": "Headwear",
+      "customization_count": 1
+    },
+    {
+      "item_id": "item-four",
+      "order_id": "order-two",
+      "sale_cents": 12000,
+      "category": "Unmapped",
+      "customization_count": 1
+    },
+    {
+      "item_id": "item-one",
+      "order_id": "order-one",
+      "sale_cents": 10000,
+      "category": "Drinkware",
+      "customization_count": 3
+    },
+    {
+      "item_id": "item-three",
+      "order_id": "order-two",
+      "sale_cents": 8000,
+      "category": "Drinkware",
+      "customization_count": 0
+    },
+    {
+      "item_id": "item-two",
+      "order_id": "order-one",
+      "sale_cents": 15000,
+      "category": "Bags",
+      "customization_count": 2
+    }
+  ],
+  "limits": "No proprietary customization pricing or manufacturing rules; no cloud execution."
+}

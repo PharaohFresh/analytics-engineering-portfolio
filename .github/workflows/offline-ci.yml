@@ -1,0 +1,19 @@
+name: offline-contracts
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.12', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -m pip install -r requirements-offline.txt
+      - run: python -m pytest offline_tests -q
+      - run: python -m case_studies.grain_contracts --output artifacts/grain
+      - run: python -m case_studies.retail_telemetry --output artifacts/telemetry

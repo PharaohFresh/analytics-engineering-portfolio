@@ -6,6 +6,7 @@ CI runs this on every push/PR (see .github/workflows/airflow-ci.yml).
 """
 
 from pathlib import Path
+from datetime import timedelta
 
 import pytest
 from airflow.models.dagbag import DagBag
@@ -49,6 +50,9 @@ def test_run_policy(dagbag, dag_id):
     assert dag.catchup is False, "backfilling a live public source is meaningless"
     for task in dag.tasks:
         assert task.retries >= 1, f"{task.task_id} has no retry policy"
+        assert task.retry_exponential_backoff is True
+        assert task.retry_delay == timedelta(minutes=5)
+        assert task.max_retry_delay == timedelta(minutes=30)
 
 
 def test_only_weekly_dag_full_refreshes(dagbag):
@@ -57,3 +61,15 @@ def test_only_weekly_dag_full_refreshes(dagbag):
 
     assert "--full-refresh" not in build_command("dbt_platform_daily")
     assert "--full-refresh" in build_command("dbt_platform_weekly_full_refresh")
+
+
+@pytest.mark.parametrize("dag_id", sorted(EXPECTED_DAGS))
+def test_build_and_audit_have_identical_explicit_target(dagbag, dag_id):
+    dag = dagbag.dags[dag_id]
+    build = dag.get_task("dbt_build")
+    audit = dag.get_task("qa_audit")
+    assert build.env == audit.env
+    assert build.env["DBT_TARGET"] in {"dev", "prod"}
+    assert build.env["BQ_DATASET"]
+    assert '--target "$DBT_TARGET"' in build.bash_command
+    assert build.append_env is True and audit.append_env is True

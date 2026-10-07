@@ -2,7 +2,7 @@
 
 Two DAGs from one factory, because the platform has two distinct run modes:
 
-- ``dbt_platform_daily``            incremental build, cheap, runs every morning
+- ``dbt_platform_daily``            full-source keyed merge, runs every morning
 - ``dbt_platform_weekly_full_refresh``  full-refresh rebuild, runs Sunday night
 
 The weekly full refresh is not belt-and-braces: ``thelook_ecommerce`` is a live
@@ -16,6 +16,7 @@ its own exit code, not a footnote inside the build.
 """
 
 import os
+import sys
 from datetime import timedelta
 from pathlib import Path
 
@@ -29,8 +30,11 @@ from airflow.sdk import DAG
 PROJECT_DIR = os.environ.get(
     "DBT_PROJECT_DIR", str(Path(__file__).resolve().parents[2])
 )
-BQ_PROJECT = os.environ.get("BQ_PROJECT", "career-analytics-portfolio")
-BQ_DATASET = os.environ.get("BQ_DATASET", "dbt_prod")
+# Loading from a deployed repository works even when Airflow adds only dags/.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from orchestration.platform_config import audit_command, build_command, target_environment
+
+TARGET_ENV = target_environment(os.environ, PROJECT_DIR)
 
 DEFAULT_ARGS = {
     "owner": "analytics-engineering",
@@ -58,28 +62,19 @@ def build_platform_dag(dag_id: str, schedule: str, full_refresh: bool) -> DAG:
     ) as dag:
         dbt_build = BashOperator(
             task_id="dbt_build",
-            bash_command=(
-                "cd {{ params.project_dir }} && "
-                "dbt build" + (" --full-refresh" if full_refresh else "")
-            ),
-            params={"project_dir": PROJECT_DIR},
+            bash_command=build_command(full_refresh),
+            env=TARGET_ENV,
+            append_env=True,
         )
 
         # Independent reconciliation (trust, but verify): re-counts grains and
         # orphans straight against BigQuery, outside dbt's own test framework.
         qa_audit = BashOperator(
             task_id="qa_audit",
-            bash_command=(
-                "cd {{ params.project_dir }} && python scripts/qa_audit.py"
-            ),
-            params={"project_dir": PROJECT_DIR},
-            env={
-                "BQ_PROJECT": BQ_PROJECT,
-                "BQ_DATASET": BQ_DATASET,
-                # qa_audit.py uses Application Default Credentials; inherit the
-                # worker's auth environment rather than injecting secrets here.
-                **os.environ,
-            },
+            bash_command=audit_command(),
+            env=TARGET_ENV,
+            # Both tasks inherit worker authentication, without literal credentials.
+            append_env=True,
         )
 
         dbt_build >> qa_audit

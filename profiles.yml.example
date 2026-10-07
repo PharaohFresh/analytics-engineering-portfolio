@@ -2,21 +2,21 @@
 # Auth: OAuth via Application Default Credentials — run once:
 #   gcloud auth application-default login
 analytics_engineering_portfolio:
-  target: dev
+  target: "{{ env_var('DBT_TARGET', 'dev') }}"
   outputs:
     dev:
       type: bigquery
       method: oauth
-      project: career-analytics-portfolio   # your GCP project
-      dataset: dbt_dev
+      project: "{{ env_var('BQ_PROJECT', 'career-analytics-portfolio') }}"
+      dataset: "{{ env_var('BQ_DATASET', 'dbt_dev') }}"
       location: US                          # thelook_ecommerce lives in the US multi-region
       threads: 4
       priority: interactive
     prod:
       type: bigquery
       method: oauth
-      project: career-analytics-portfolio
-      dataset: analytics
+      project: "{{ env_var('BQ_PROJECT', 'career-analytics-portfolio') }}"
+      dataset: "{{ env_var('BQ_DATASET', 'analytics') }}"
       location: US
       threads: 8
       priority: interactive

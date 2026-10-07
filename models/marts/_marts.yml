@@ -49,7 +49,7 @@ models:
                 field: customer_key
 
   - name: fct_order_items
-    description: "Order-item fact, incremental on item_created_at. Grain: one row per order item."
+    description: "Order-item fact using a full-source keyed merge to retain late arrivals and mutable status/current product enrichment. Grain: one row per order item. Source deletions require a full rebuild."
     columns:
       - name: order_item_key
         description: "Primary key — natural order-item identifier. Asserts the item grain."

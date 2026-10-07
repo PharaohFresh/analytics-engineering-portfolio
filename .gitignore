@@ -7,4 +7,7 @@ profiles.yml
 *.log
 __pycache__/
 .venv/
+.venv-dbt/
 .DS_Store
+.pytest_cache/
+artifacts/
