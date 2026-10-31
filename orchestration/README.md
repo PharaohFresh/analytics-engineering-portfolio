@@ -7,6 +7,12 @@ One factory creates two small DAGs. Each builds dbt, then runs independent BigQu
 | `dbt_platform_daily` | 06:00 daily | Full-source keyed merge for mutable item state |
 | `dbt_platform_weekly_full_refresh` | Sunday 22:00 | `dbt build --full-refresh` to realign deleted/regenerated source keys |
 
+Both DAGs write the same target, so they share the one-slot `dbt_platform_target` pool and each runs one instance at a time (`max_active_runs=1`). QA tasks use the upstream weight rule, so a finished build's QA takes the slot before another DAG's waiting build. The build task times out after two hours and QA after thirty minutes. A timeout ends the Airflow task, but a BigQuery job dbt already submitted can keep running, so the pool bounds Airflow tasks rather than warehouse jobs. Create the pool before enabling the DAGs; without it, tasks stay scheduled and never start, with no error shown:
+
+```bash
+airflow pools set dbt_platform_target 1 "One dbt task per target"
+```
+
 The daily merge scans all current enriched source rows. It retains updates, ties and late arrivals but does not remove disappeared keys. The weekly rebuild and independent key/count checks address that separate failure mode. No cheap-scan claim is made.
 
 ```mermaid
@@ -38,6 +44,7 @@ Portable [configuration tests](../offline_tests/test_configuration.py) render th
 - clean imports and both expected DAG IDs;
 - build before independent QA;
 - `catchup=False`, retries and exponential backoff;
+- one active run per DAG, one shared pool across all four tasks and a timeout on every task;
 - only the weekly DAG passes `--full-refresh`;
 - both tasks share project/dataset/target and inherit the worker environment.
 

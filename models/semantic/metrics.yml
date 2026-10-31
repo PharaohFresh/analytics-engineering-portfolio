@@ -44,14 +44,24 @@ metrics:
     type_params:
       measure: active_customers
 
+  - name: orders_with_items
+    label: Orders with items
+    description: "Distinct orders that have at least one item in the period, counted from the item model."
+    type: simple
+    type_params:
+      measure: orders_with_items
+
   # -- derived / ratio metrics ------------------------------------------------
+  # AOV takes both sides from the order_items model, so they share one date cohort and one
+  # population (orders with items). Dividing by order_count would mix in itemless orders
+  # and the orders model's header date. This matches mart_revenue_by_segment.
   - name: average_order_value
     label: Average order value (AOV)
-    description: "Total revenue divided by order count."
+    description: "Total item revenue divided by distinct orders with items."
     type: ratio
     type_params:
       numerator: total_revenue
-      denominator: order_count
+      denominator: orders_with_items
 
   - name: return_rate
     label: Return rate

@@ -37,7 +37,7 @@ The warehouse uses Google's public `bigquery-public-data.thelook_ecommerce` samp
 | Financial reporting | Composite mart grain checks and revenue/margin/unit/return-total reconciliation |
 | Fiscal plan review | Empty-period coverage, zero/missing targets and independently reconciled month/department dashboard |
 | Temporal event modeling | A session spanning two UTC partitions retains the next-day authorization |
-| Governed consumption | Nine declared MetricFlow metrics, a product SCD-2 snapshot and a dashboard exposure |
+| Governed consumption | Ten declared MetricFlow metrics, a product SCD-2 snapshot and a dashboard exposure |
 | Operational consistency | Airflow build and QA share an explicit project, dataset and dbt target |
 
 ## Architecture and grain
@@ -125,11 +125,11 @@ Merge does not remove rows that disappeared from source. Independent key coverag
 - Six [singular finance tests](tests/) assert each composite grain, reconcile aggregate money, units and returns, and reconcile every bucket by key. Public sample prices are floating-point values, so money checks allow `max(1e-6, abs(expected) * 1e-9)`; rounded AOV and rates allow one rounding step (0.011 and 0.00011).
 - Twelve [independent QA queries](scripts/qa_contracts.py) check row counts, unique/non-null keys, bidirectional source coverage, orphan items, prices, item state/parent/product enrichment, and order values/item rollups by stable key.
 - [Offline regressions](offline_tests/test_warehouse_sql.py) exercise the actual rendered item/enrichment/order/finance SQL and singular tests on invented SQLite tables. They reproduce old returns, timestamp ties, late arrivals, changed costs/categories, missing source rows and same-count corruption, including offsetting price errors. Both finance marts are checked against exact expected rows, and keyed per-bucket reconciliation fails swapped labels, offsetting bucket errors and wrong ratios that leave every total intact.
-- [Configuration tests](offline_tests/test_configuration.py) render the actual profile template and compare default/overridden targets with the Airflow environment helper. Linux DagBag tests verify imports, dependencies, task environments and retry policy.
+- [Configuration tests](offline_tests/test_configuration.py) render the actual profile template and compare default/overridden targets with the Airflow environment helper. Linux DagBag tests verify imports, dependencies, task environments, retry policy, the shared one-slot pool, one active run per DAG, QA priority and task timeouts.
 
 The SQLite harness translates selected BigQuery SQL and simulates keyed replacement. It verifies source selection and these business contracts; it does not execute dbt-generated BigQuery MERGE DML or prove all BigQuery numeric/dialect behavior. Credentialed CI remains the warehouse engine check.
 
-Local follow-up verification: 95 offline tests pass on Python 3.12 and 3.14; the three demos run and the dashboard's filters/walkthrough pass at 1440px and 390px widths without page overflow or script errors. Native `dbt parse` passes on Python 3.13 with dbt-core 1.11.11/dbt-bigquery 1.11.3 using a dummy OAuth profile. Use [Actions](https://github.com/PharaohFresh/analytics-engineering-portfolio/actions) for hosted BigQuery build/QA, fiscal readback and Linux Airflow results for the exact revision; local parsing is not a live warehouse build.
+Local follow-up verification: 97 offline tests pass on Python 3.12 and 3.14; the three demos run and the dashboard's filters/walkthrough pass at 1440px and 390px widths without page overflow or script errors. Native `dbt parse` passes on Python 3.13 with dbt-core 1.11.11/dbt-bigquery 1.11.3 using a dummy OAuth profile. Use [Actions](https://github.com/PharaohFresh/analytics-engineering-portfolio/actions) for hosted BigQuery build/QA, fiscal readback and Linux Airflow results for the exact revision; local parsing is not a live warehouse build.
 
 ## CI, catalog and promotion
 
@@ -145,7 +145,7 @@ The [live dbt catalog](https://pharaohfresh.github.io/analytics-engineering-port
 models/staging/       source contracts and typed views
 models/intermediate/ item/customer enrichment
 models/marts/        dimensions, facts, finance marts and exposure
-models/semantic/     two semantic models and nine metric definitions
+models/semantic/     two semantic models and ten metric definitions
 snapshots/           product SCD-2 history
 scripts/             independent BigQuery QA and reusable query contracts
 orchestration/       daily keyed merge, weekly rebuild and DagBag tests

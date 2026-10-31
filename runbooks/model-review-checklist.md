@@ -1,6 +1,6 @@
 # Runbook: Model Review Checklist
 
-What a reviewer confirms before approving a PR to `main` (prod).
+What a reviewer confirms before approving a PR to `main`. Merging to `main` rebuilds `dbt_ci` and can publish the catalog; it does not deploy the `prod` output (see [GOVERNANCE.md](../GOVERNANCE.md)).
 
 - [ ] **Grain** is stated in the model's `description` and matches the SQL (no accidental fan-out).
 - [ ] **Key tests** present: `unique` + `not_null` on the primary/surrogate key.

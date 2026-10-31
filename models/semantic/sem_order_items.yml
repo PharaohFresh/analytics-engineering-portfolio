@@ -27,6 +27,9 @@ semantic_models:
     dimensions:
       - name: ordered_at
         type: time
+        description: >
+          The item's own creation date: stg_order_items casts the item created_at to a
+          column named order_date. It is not read from the order header.
         expr: order_date
         type_params:
           time_granularity: day
@@ -56,3 +59,7 @@ semantic_models:
         description: "Count of order items flagged returned."
         agg: sum
         expr: case when is_returned then 1 else 0 end
+      - name: orders_with_items
+        description: "Distinct orders with at least one item; the AOV denominator."
+        agg: count_distinct
+        expr: order_key
