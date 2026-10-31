@@ -29,12 +29,18 @@ def connection():
       CREATE TABLE stg_order_items (order_item_key INTEGER, order_key INTEGER, customer_key INTEGER,
         product_key INTEGER, item_status TEXT, sale_price REAL, item_created_at TEXT, order_date TEXT,
         shipped_at TEXT, delivered_at TEXT, returned_at TEXT);
-      CREATE TABLE stg_orders (order_key INTEGER, customer_key INTEGER, order_status TEXT);
+      CREATE TABLE stg_orders (order_key INTEGER, customer_key INTEGER, order_status TEXT, num_items INTEGER,
+        order_created_at TEXT, order_date TEXT, shipped_at TEXT, delivered_at TEXT, returned_at TEXT);
       CREATE TABLE stg_products (product_key INTEGER, product_name TEXT, brand TEXT, category TEXT,
         department TEXT, cost REAL, retail_price REAL, distribution_center_key INTEGER);
       CREATE TABLE stg_distribution_centers (distribution_center_key INTEGER, distribution_center_name TEXT);
       CREATE TABLE dim_customers (customer_key INTEGER, traffic_source TEXT, country TEXT);
-      INSERT INTO stg_orders VALUES (101,1,'Complete'), (102,2,'Complete'), (103,1,'Complete');
+      -- Order 104 has no items: fct_orders keeps it through its left join with empty rollups.
+      INSERT INTO stg_orders VALUES
+        (101,1,'Complete',1,'2026-09-01T09:00:00','2026-09-01',NULL,NULL,NULL),
+        (102,2,'Complete',1,'2026-09-02T09:00:00','2026-09-02','2026-09-03T10:00:00','2026-09-05T10:00:00',NULL),
+        (103,1,'Complete',1,'2026-09-03T09:00:00','2026-09-03',NULL,NULL,NULL),
+        (104,2,'Cancelled',0,'2026-09-04T09:00:00','2026-09-04',NULL,NULL,NULL);
       INSERT INTO stg_products VALUES (1,'Cup','Invented','Drinkware','Home',30,100,1),
         (2,'Bag','Invented','Bags','Gear',50,200,1), (3,'Cap','Invented','Headwear','Gear',60,150,1);
       INSERT INTO stg_distribution_centers VALUES (1,'Synthetic center');
@@ -43,7 +49,6 @@ def connection():
         (1,101,1,1,'Complete',100,'2026-09-01T10:00:00','2026-09-01',NULL,NULL,NULL),
         (2,102,2,2,'Complete',200,'2026-09-02T10:00:00','2026-09-02',NULL,NULL,NULL),
         (3,103,1,3,'Complete',150,'2026-09-03T10:00:00','2026-09-03',NULL,NULL,NULL);
-      CREATE TABLE fct_orders AS SELECT order_key, customer_key FROM stg_orders;
     """)
     apply_fact(conn, full_refresh=True)
     return conn
@@ -62,6 +67,9 @@ def apply_fact(conn, full_refresh=False):
         conn.execute("DELETE FROM fct_order_items WHERE order_item_key IN (SELECT order_item_key FROM candidate)")
         conn.execute("INSERT INTO fct_order_items SELECT * FROM candidate")
         conn.execute("DROP TABLE candidate")
+    # fct_orders is a table model, so every build recreates it from the actual model SQL.
+    conn.execute("DROP TABLE IF EXISTS fct_orders")
+    conn.execute("CREATE TABLE fct_orders AS " + render("models/marts/core/fct_orders.sql"))
 
 
 def build_finance(conn):

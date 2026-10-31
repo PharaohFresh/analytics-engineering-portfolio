@@ -51,12 +51,89 @@ def test_independent_audit_detects_same_count_corruption(mutation,expected):
     assert any(expected in label for label in failed_checks(conn))
 
 
-def test_finance_model_sql_and_all_four_singular_tests():
+def test_order_fact_runs_the_real_model_and_keeps_itemless_orders():
+    conn = connection()
+    rows = conn.execute("SELECT order_key, customer_key, order_date, order_status, num_items, delivered_at, item_count, "
+                        "total_revenue, total_gross_margin, returned_item_count FROM fct_orders ORDER BY order_key").fetchall()
+    assert rows == [
+        (101, 1, '2026-09-01', 'Complete', 1, None, 1, 100, 70, 0),
+        (102, 2, '2026-09-02', 'Complete', 1, '2026-09-05T10:00:00', 1, 200, 150, 0),
+        (103, 1, '2026-09-03', 'Complete', 1, None, 1, 150, 90, 0),
+        (104, 2, '2026-09-04', 'Cancelled', 0, None, None, None, None, None),
+    ]
+    assert failed_checks(conn) == []
+
+
+@pytest.mark.parametrize("mutation", [
+    "UPDATE fct_orders SET customer_key=2 WHERE order_key=101",
+    "UPDATE fct_orders SET order_date='2026-08-31' WHERE order_key=101",
+    "UPDATE fct_orders SET order_status='Returned' WHERE order_key=101",
+    "UPDATE fct_orders SET num_items=2 WHERE order_key=101",
+    "UPDATE fct_orders SET delivered_at=NULL WHERE order_key=102",
+    "UPDATE fct_orders SET item_count=2 WHERE order_key=101",
+    "UPDATE fct_orders SET total_revenue=total_revenue+50 WHERE order_key=101",
+    "UPDATE fct_orders SET total_gross_margin=total_gross_margin+1 WHERE order_key=101",
+    # An itemless order has no rollup; only the null-mismatch predicate catches a zero total.
+    "UPDATE fct_orders SET total_revenue=0 WHERE order_key=104",
+])
+def test_order_values_and_rollups_are_checked_by_key(mutation):
+    # Before the keyed order check, these same-count changes passed every QA contract.
+    conn = connection()
+    conn.execute(mutation)
+    assert failed_checks(conn) == ['order values match source and rollups match the item fact by key']
+
+
+SINGULAR_FINANCE_TESTS = (
+    'finance_revenue_grain', 'finance_category_grain',
+    'finance_revenue_reconciliation', 'finance_category_reconciliation',
+    'finance_revenue_bucket_reconciliation', 'finance_category_bucket_reconciliation',
+)
+BUCKET_TESTS = {'finance_revenue_bucket_reconciliation', 'finance_category_bucket_reconciliation'}
+
+
+def finance_failures(conn):
+    return [name for name in SINGULAR_FINANCE_TESTS if conn.execute(render(f"tests/{name}.sql")).fetchall()]
+
+
+def test_finance_marts_produce_exact_expected_rows():
+    conn = connection()
+    build_finance(conn)
+    assert conn.execute("SELECT * FROM mart_revenue_by_segment ORDER BY traffic_source, country").fetchall() == [
+        ('Email', 'CA', 1, 1, 200, 150, 200.0),
+        ('Search', 'US', 2, 2, 250, 160, 125.0),
+    ]
+    assert conn.execute("SELECT * FROM mart_product_category_margin ORDER BY department, category").fetchall() == [
+        ('Gear', 'Bags', 1, 200, 150, 0.75, 0, 0.0),
+        ('Gear', 'Headwear', 1, 150, 90, 0.6, 0, 0.0),
+        ('Home', 'Drinkware', 1, 100, 70, 0.7, 0, 0.0),
+    ]
+
+
+@pytest.mark.parametrize("mutation", [
+    "UPDATE mart_revenue_by_segment SET country=CASE country WHEN 'US' THEN 'CA' ELSE 'US' END",
+    "UPDATE mart_product_category_margin SET total_revenue=total_revenue+CASE category WHEN 'Bags' THEN 50 WHEN 'Headwear' THEN -50 ELSE 0 END",
+    "UPDATE mart_revenue_by_segment SET order_count=order_count+7, avg_order_value=1 WHERE country='US'",
+    "UPDATE mart_revenue_by_segment SET avg_order_value=avg_order_value+1 WHERE country='US'",
+    "UPDATE mart_revenue_by_segment SET units_sold=units_sold+1 WHERE country='CA'",
+    "UPDATE mart_product_category_margin SET return_rate=0.9 WHERE category='Bags'",
+    "UPDATE mart_product_category_margin SET gross_margin_pct=0.01 WHERE category='Bags'",
+    "DELETE FROM mart_product_category_margin WHERE category='Bags'",
+    "INSERT INTO mart_revenue_by_segment VALUES ('Display','MX',1,1,0,0,0)",
+])
+def test_bucket_level_finance_corruption_fails_a_keyed_check(mutation):
+    # Several of these keep every total intact, so only the keyed bucket checks can see them.
+    conn = connection()
+    build_finance(conn)
+    assert finance_failures(conn) == []
+    conn.execute(mutation)
+    assert BUCKET_TESTS & set(finance_failures(conn))
+
+
+def test_finance_model_sql_and_all_six_singular_tests():
     conn=connection();build_finance(conn)
     assert conn.execute("SELECT SUM(total_revenue) FROM mart_revenue_by_segment").fetchone()[0]==450
     assert conn.execute("SELECT SUM(total_gross_margin) FROM mart_revenue_by_segment").fetchone()[0]==310
-    for name in ('finance_revenue_grain','finance_category_grain','finance_revenue_reconciliation','finance_category_reconciliation'):
-        assert conn.execute(render(f"tests/{name}.sql")).fetchall()==[]
+    assert finance_failures(conn)==[]
     conn.execute("INSERT INTO mart_revenue_by_segment SELECT * FROM mart_revenue_by_segment WHERE country='US'")
     assert conn.execute(render("tests/finance_revenue_grain.sql")).fetchall()
     assert conn.execute(render("tests/finance_revenue_reconciliation.sql")).fetchall()

@@ -37,4 +37,19 @@ def queries(project: str, dataset: str) -> list[tuple[str, str]]:
     result.append(("item values and parent assignments match source by key",
                    f"SELECT COUNT(*) FROM {items} i JOIN {source} s USING(order_item_key) "
                    f"LEFT JOIN {products} p ON s.product_key = p.product_key WHERE " + " OR ".join(comparisons)))
+    rollup = (f"SELECT order_key, COUNT(*) AS item_count, SUM(sale_price) AS total_revenue, "
+              f"SUM(gross_margin) AS total_gross_margin, "
+              f"SUM(CASE WHEN is_returned THEN 1 ELSE 0 END) AS returned_item_count FROM {items} GROUP BY order_key")
+    order_comparisons = [f"o.{column} IS DISTINCT FROM s.{column}" for column in (
+        "customer_key", "order_date", "order_status", "num_items", "shipped_at", "delivered_at", "returned_at",
+    )]
+    order_comparisons += ["o.item_count IS DISTINCT FROM r.item_count",
+                          "o.returned_item_count IS DISTINCT FROM r.returned_item_count"]
+    # Float sums can differ in the last bits with summation order, so totals use a tolerance.
+    for column in ("total_revenue", "total_gross_margin"):
+        order_comparisons += [f"(o.{column} IS NULL) != (r.{column} IS NULL)",
+                              f"ABS(o.{column} - r.{column}) > GREATEST(0.000001, ABS(r.{column}) * 0.000000001)"]
+    result.append(("order values match source and rollups match the item fact by key",
+                   f"SELECT COUNT(*) FROM {orders} o JOIN {source_orders} s ON o.order_key = s.order_key "
+                   f"LEFT JOIN ({rollup}) r ON o.order_key = r.order_key WHERE " + " OR ".join(order_comparisons)))
     return result
