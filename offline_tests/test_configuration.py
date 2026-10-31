@@ -36,7 +36,8 @@ def test_deployed_build_and_audit_target_matches_real_profile_template(environme
 @pytest.mark.parametrize('environment', [{'DBT_TARGET':'unknown'},{'DBT_TARGET':''},{'BQ_PROJECT':''},{'BQ_DEV_DATASET':''},
  {'DBT_TARGET':'prod','BQ_PROD_DATASET':''}])
 def test_invalid_deployment_target_fails_before_task_creation(environment):
-    with pytest.raises(ValueError):target_environment(environment,'/tmp/project')
+    with pytest.raises(ValueError):
+        target_environment(environment,'/tmp/project')
 
 
 @pytest.mark.parametrize('inherited', [

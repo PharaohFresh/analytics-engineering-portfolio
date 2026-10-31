@@ -27,10 +27,13 @@ def test_timestamp_ties_and_late_arrivals_are_included(created_at):
 
 
 def test_repeated_merge_is_idempotent_and_deletions_require_full_refresh():
-    conn=connection();apply_fact(conn);before=conn.execute("SELECT * FROM fct_order_items ORDER BY order_item_key").fetchall()
+    conn=connection()
+    apply_fact(conn)
+    before=conn.execute("SELECT * FROM fct_order_items ORDER BY order_item_key").fetchall()
     apply_fact(conn)
     assert conn.execute("SELECT * FROM fct_order_items ORDER BY order_item_key").fetchall()==before
-    conn.execute("DELETE FROM stg_order_items WHERE order_item_key=1");apply_fact(conn)
+    conn.execute("DELETE FROM stg_order_items WHERE order_item_key=1")
+    apply_fact(conn)
     assert 'item key sets match source' in failed_checks(conn)
     apply_fact(conn,full_refresh=True)
     assert failed_checks(conn)==[]
@@ -47,7 +50,8 @@ def test_repeated_merge_is_idempotent_and_deletions_require_full_refresh():
  ("UPDATE fct_orders SET order_key=NULL WHERE order_key=101", "order keys are non-null"),
 ])
 def test_independent_audit_detects_same_count_corruption(mutation,expected):
-    conn=connection();conn.execute(mutation)
+    conn=connection()
+    conn.execute(mutation)
     assert any(expected in label for label in failed_checks(conn))
 
 
@@ -130,7 +134,8 @@ def test_bucket_level_finance_corruption_fails_a_keyed_check(mutation):
 
 
 def test_finance_model_sql_and_all_six_singular_tests():
-    conn=connection();build_finance(conn)
+    conn=connection()
+    build_finance(conn)
     assert conn.execute("SELECT SUM(total_revenue) FROM mart_revenue_by_segment").fetchone()[0]==450
     assert conn.execute("SELECT SUM(total_gross_margin) FROM mart_revenue_by_segment").fetchone()[0]==310
     assert finance_failures(conn)==[]
@@ -142,7 +147,8 @@ def test_finance_model_sql_and_all_six_singular_tests():
 
 
 def test_financial_tolerance_is_explicit_and_does_not_accept_material_drift():
-    conn=connection();build_finance(conn)
+    conn=connection()
+    build_finance(conn)
     conn.execute("UPDATE mart_revenue_by_segment SET total_revenue=total_revenue+0.0000001 WHERE country='US'")
     assert conn.execute(render("tests/finance_revenue_reconciliation.sql")).fetchall()==[]
     conn.execute("UPDATE mart_revenue_by_segment SET total_revenue=total_revenue+1 WHERE country='US'")
@@ -150,6 +156,7 @@ def test_financial_tolerance_is_explicit_and_does_not_accept_material_drift():
 
 
 def test_category_margin_corruption_is_detected():
-    conn=connection();build_finance(conn)
+    conn=connection()
+    build_finance(conn)
     conn.execute('UPDATE mart_product_category_margin SET total_gross_margin=total_gross_margin+999')
     assert conn.execute(render('tests/finance_category_reconciliation.sql')).fetchall()
