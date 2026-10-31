@@ -49,7 +49,7 @@ def queries(project: str, dataset: str) -> list[tuple[str, str]]:
     for column in ("total_revenue", "total_gross_margin"):
         order_comparisons += [f"(o.{column} IS NULL) != (r.{column} IS NULL)",
                               f"ABS(o.{column} - r.{column}) > GREATEST(0.000001, ABS(r.{column}) * 0.000000001)"]
-    result.append(("order values and item rollups match source by key",
+    result.append(("order values match source and rollups match the item fact by key",
                    f"SELECT COUNT(*) FROM {orders} o JOIN {source_orders} s ON o.order_key = s.order_key "
                    f"LEFT JOIN ({rollup}) r ON o.order_key = r.order_key WHERE " + " OR ".join(order_comparisons)))
     return result

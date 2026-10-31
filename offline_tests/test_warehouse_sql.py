@@ -72,13 +72,15 @@ def test_order_fact_runs_the_real_model_and_keeps_itemless_orders():
     "UPDATE fct_orders SET delivered_at=NULL WHERE order_key=102",
     "UPDATE fct_orders SET item_count=2 WHERE order_key=101",
     "UPDATE fct_orders SET total_revenue=total_revenue+50 WHERE order_key=101",
-    "UPDATE fct_orders SET item_count=1, total_revenue=0 WHERE order_key=104",
+    "UPDATE fct_orders SET total_gross_margin=total_gross_margin+1 WHERE order_key=101",
+    # An itemless order has no rollup; only the null-mismatch predicate catches a zero total.
+    "UPDATE fct_orders SET total_revenue=0 WHERE order_key=104",
 ])
 def test_order_values_and_rollups_are_checked_by_key(mutation):
     # Before the keyed order check, these same-count changes passed every QA contract.
     conn = connection()
     conn.execute(mutation)
-    assert failed_checks(conn) == ['order values and item rollups match source by key']
+    assert failed_checks(conn) == ['order values match source and rollups match the item fact by key']
 
 
 SINGULAR_FINANCE_TESTS = (
