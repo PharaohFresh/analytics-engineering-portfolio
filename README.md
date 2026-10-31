@@ -98,16 +98,16 @@ python -m pip install -r requirements-warehouse.txt
 gcloud auth application-default login
 mkdir -p ~/.dbt
 cp profiles.yml.example ~/.dbt/profiles.yml
-export DBT_TARGET=dev BQ_PROJECT=your-gcp-project BQ_DATASET=dbt_dev
+export DBT_TARGET=dev BQ_PROJECT=your-gcp-project BQ_DEV_DATASET=dbt_dev
 dbt build --target dev --full-refresh
-python scripts/qa_audit.py
+BQ_DATASET=dbt_dev python scripts/qa_audit.py
 dbt docs generate --target dev
 dbt docs serve
 ```
 
-The shell setup above is Bash. In PowerShell, copy the [profile template](profiles.yml.example) to `$HOME\.dbt\profiles.yml`, then set `$env:DBT_TARGET='dev'`, `$env:BQ_PROJECT='your-gcp-project'` and `$env:BQ_DATASET='dbt_dev'`. Never commit the populated profile or credentials.
+The shell setup above is Bash. In PowerShell, copy the [profile template](profiles.yml.example) to `$HOME\.dbt\profiles.yml`, then set `$env:DBT_TARGET='dev'`, `$env:BQ_PROJECT='your-gcp-project'` and `$env:BQ_DEV_DATASET='dbt_dev'`, and set `$env:BQ_DATASET='dbt_dev'` before the QA script. Never commit the populated profile or credentials.
 
-The independent QA script requires both `BQ_PROJECT` and `BQ_DATASET`; it does not guess the built target. Exit code `0` means all eleven contracts passed. Exit code `1` means a failed check or invalid runtime configuration.
+The dev and prod outputs read separate variables (`BQ_DEV_DATASET`, `BQ_PROD_DATASET`), so a dataset exported for development cannot redirect a production build. The product snapshot lands in `<dataset>_snapshots` for the selected output, for example `dbt_dev_snapshots`. The independent QA script requires both `BQ_PROJECT` and `BQ_DATASET`; it does not guess the built target. Exit code `0` means all eleven contracts passed. Exit code `1` means a failed check or invalid runtime configuration.
 
 ## Why the incremental strategy changed
 
