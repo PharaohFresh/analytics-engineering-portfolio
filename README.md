@@ -107,7 +107,7 @@ dbt docs serve
 
 The shell setup above is Bash. In PowerShell, copy the [profile template](profiles.yml.example) to `$HOME\.dbt\profiles.yml`, then set `$env:DBT_TARGET='dev'`, `$env:BQ_PROJECT='your-gcp-project'` and `$env:BQ_DEV_DATASET='dbt_dev'`, and set `$env:BQ_DATASET='dbt_dev'` before the QA script. Never commit the populated profile or credentials.
 
-The dev and prod outputs read separate variables (`BQ_DEV_DATASET`, `BQ_PROD_DATASET`), so a dataset exported for development cannot redirect a production build. The product snapshot lands in `<dataset>_snapshots` for the selected output, for example `dbt_dev_snapshots`. The independent QA script requires both `BQ_PROJECT` and `BQ_DATASET`; it does not guess the built target. Exit code `0` means all eleven contracts passed. Exit code `1` means a failed check or invalid runtime configuration.
+The dev and prod outputs read separate variables (`BQ_DEV_DATASET`, `BQ_PROD_DATASET`), so a dataset exported for development cannot redirect a production build. A profile copied from the template before October 2026 reads `BQ_DATASET` for both outputs; copy the current template again. The product snapshot lands in `<dataset>_snapshots` for the selected output, for example `dbt_dev_snapshots`. The independent QA script requires both `BQ_PROJECT` and `BQ_DATASET`; it does not guess the built target. Exit code `0` means all eleven contracts passed. Exit code `1` means a failed check or invalid runtime configuration.
 
 ## Why the incremental strategy changed
 
@@ -129,7 +129,7 @@ Merge does not remove rows that disappeared from source. Independent key coverag
 
 The SQLite harness translates selected BigQuery SQL and simulates keyed replacement. It verifies source selection and these business contracts; it does not execute dbt-generated BigQuery MERGE DML or prove all BigQuery numeric/dialect behavior. Credentialed CI remains the warehouse engine check.
 
-Local follow-up verification: 69 offline tests pass on Python 3.12 and 3.14; the three demos run and the dashboard's filters/walkthrough pass at 1440px and 390px widths without page overflow or script errors. Native `dbt parse` passes on Python 3.13 with dbt-core 1.11.11/dbt-bigquery 1.11.3 using a dummy OAuth profile. Use [Actions](https://github.com/PharaohFresh/analytics-engineering-portfolio/actions) for hosted BigQuery build/QA, fiscal readback and Linux Airflow results for the exact revision; local parsing is not a live warehouse build.
+Local follow-up verification: 75 offline tests pass on Python 3.12 and 3.14; the three demos run and the dashboard's filters/walkthrough pass at 1440px and 390px widths without page overflow or script errors. Native `dbt parse` passes on Python 3.13 with dbt-core 1.11.11/dbt-bigquery 1.11.3 using a dummy OAuth profile. Use [Actions](https://github.com/PharaohFresh/analytics-engineering-portfolio/actions) for hosted BigQuery build/QA, fiscal readback and Linux Airflow results for the exact revision; local parsing is not a live warehouse build.
 
 ## CI, catalog and promotion
 
