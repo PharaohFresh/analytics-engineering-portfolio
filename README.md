@@ -33,7 +33,7 @@ The warehouse uses Google's public `bigquery-public-data.thelook_ecommerce` samp
 | Dimensional modeling | Staging, enrichment, order/item facts and customer/product/date/center dimensions |
 | Business grain | Three orders, five physical units and seven customization records remain separate metrics |
 | Mutable-source correctness | Older returns, tied timestamps, late arrivals and changed current product costs are reselected |
-| Quality beyond counts | Eleven read-only checks compare keys, item values and parent assignments against source |
+| Quality beyond counts | Twelve read-only checks compare keys, item and order values, and parent assignments against source |
 | Financial reporting | Composite mart grain checks and revenue/margin/unit/return-total reconciliation |
 | Fiscal plan review | Empty-period coverage, zero/missing targets and independently reconciled month/department dashboard |
 | Temporal event modeling | A session spanning two UTC partitions retains the next-day authorization |
@@ -107,7 +107,7 @@ dbt docs serve
 
 The shell setup above is Bash. In PowerShell, copy the [profile template](profiles.yml.example) to `$HOME\.dbt\profiles.yml`, then set `$env:DBT_TARGET='dev'`, `$env:BQ_PROJECT='your-gcp-project'` and `$env:BQ_DEV_DATASET='dbt_dev'`, and set `$env:BQ_DATASET='dbt_dev'` before the QA script. Never commit the populated profile or credentials.
 
-The dev and prod outputs read separate variables (`BQ_DEV_DATASET`, `BQ_PROD_DATASET`), so a dataset exported for development cannot redirect a production build. A profile copied from the template before October 2026 reads `BQ_DATASET` for both outputs; copy the current template again. The product snapshot lands in `<dataset>_snapshots` for the selected output, for example `dbt_dev_snapshots`. The independent QA script requires both `BQ_PROJECT` and `BQ_DATASET`; it does not guess the built target. Exit code `0` means all eleven contracts passed. Exit code `1` means a failed check or invalid runtime configuration.
+The dev and prod outputs read separate variables (`BQ_DEV_DATASET`, `BQ_PROD_DATASET`), so a dataset exported for development cannot redirect a production build. A profile copied from the template before October 2026 reads `BQ_DATASET` for both outputs; copy the current template again. The product snapshot lands in `<dataset>_snapshots` for the selected output, for example `dbt_dev_snapshots`. The independent QA script requires both `BQ_PROJECT` and `BQ_DATASET`; it does not guess the built target. Exit code `0` means all twelve contracts passed. Exit code `1` means a failed check or invalid runtime configuration.
 
 ## Why the incremental strategy changed
 
@@ -123,13 +123,13 @@ Merge does not remove rows that disappeared from source. Independent key coverag
 
 - Generic dbt tests assert source/core keys and relationships.
 - Four [singular finance tests](tests/) assert each composite grain and reconcile aggregate money, units and returns. Public sample prices are floating-point values; money checks use an explicit `max(1e-6, abs(expected) * 1e-9)` tolerance.
-- Eleven [independent QA queries](scripts/qa_contracts.py) check row counts, unique/non-null keys, bidirectional source coverage, orphan items, prices and item state/parent/product enrichment by stable key.
-- [Offline regressions](offline_tests/test_warehouse_sql.py) exercise the actual rendered item/enrichment/finance SQL and singular tests on invented SQLite tables. They reproduce old returns, timestamp ties, late arrivals, changed costs/categories, missing source rows and same-count corruption, including offsetting price errors.
+- Twelve [independent QA queries](scripts/qa_contracts.py) check row counts, unique/non-null keys, bidirectional source coverage, orphan items, prices, item state/parent/product enrichment, and order values/item rollups by stable key.
+- [Offline regressions](offline_tests/test_warehouse_sql.py) exercise the actual rendered item/enrichment/order/finance SQL and singular tests on invented SQLite tables. They reproduce old returns, timestamp ties, late arrivals, changed costs/categories, missing source rows and same-count corruption, including offsetting price errors. Both finance marts are checked against exact expected rows, and keyed per-bucket reconciliation fails swapped labels, offsetting bucket errors and wrong ratios that leave every total intact.
 - [Configuration tests](offline_tests/test_configuration.py) render the actual profile template and compare default/overridden targets with the Airflow environment helper. Linux DagBag tests verify imports, dependencies, task environments and retry policy.
 
 The SQLite harness translates selected BigQuery SQL and simulates keyed replacement. It verifies source selection and these business contracts; it does not execute dbt-generated BigQuery MERGE DML or prove all BigQuery numeric/dialect behavior. Credentialed CI remains the warehouse engine check.
 
-Local follow-up verification: 75 offline tests pass on Python 3.12 and 3.14; the three demos run and the dashboard's filters/walkthrough pass at 1440px and 390px widths without page overflow or script errors. Native `dbt parse` passes on Python 3.13 with dbt-core 1.11.11/dbt-bigquery 1.11.3 using a dummy OAuth profile. Use [Actions](https://github.com/PharaohFresh/analytics-engineering-portfolio/actions) for hosted BigQuery build/QA, fiscal readback and Linux Airflow results for the exact revision; local parsing is not a live warehouse build.
+Local follow-up verification: 94 offline tests pass on Python 3.12 and 3.14; the three demos run and the dashboard's filters/walkthrough pass at 1440px and 390px widths without page overflow or script errors. Native `dbt parse` passes on Python 3.13 with dbt-core 1.11.11/dbt-bigquery 1.11.3 using a dummy OAuth profile. Use [Actions](https://github.com/PharaohFresh/analytics-engineering-portfolio/actions) for hosted BigQuery build/QA, fiscal readback and Linux Airflow results for the exact revision; local parsing is not a live warehouse build.
 
 ## CI, catalog and promotion
 

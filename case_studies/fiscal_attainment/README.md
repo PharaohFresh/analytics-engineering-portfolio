@@ -34,7 +34,7 @@ Open `http://127.0.0.1:8765`. The output directory must be new. Stop the server 
 
 The public model is [mart_fiscal_attainment](../../models/marts/finance/mart_fiscal_attainment.sql), at month/department grain. It reads the existing item fact and [invented target seed](../../seeds/demo_fiscal_targets.csv). The [SQL contract](../../tests/fiscal_contracts.sql) checks mart/plan uniqueness, nonnegative targets and the gross-minus-returned identity.
 
-Before publishing the warehouse-backed view, the [Python builder](__main__.py) independently recomputes every bucket from the item fact and compares keys and all metric/target values against the dbt mart. Same-count corruption, missing rows and duplicated rows block publication. This verifies the mart against its parent fact; the existing eleven independent source-to-fact QA checks remain the separate upstream assurance.
+Before publishing the warehouse-backed view, the [Python builder](__main__.py) independently recomputes every bucket from the item fact and compares keys and all metric/target values against the dbt mart. Same-count corruption, missing rows and duplicated rows block publication. This verifies the mart against its parent fact; the twelve independent source-to-fact QA checks remain the separate upstream assurance.
 
 ## What the walkthrough demonstrates
 

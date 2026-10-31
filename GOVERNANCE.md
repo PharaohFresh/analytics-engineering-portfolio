@@ -23,7 +23,7 @@ Until October 2026 the snapshot wrote to a fixed `snapshots` dataset, so CI and 
 
 ## Data integrity
 
-Core/source keys have generic dbt tests. Finance marts have explicit composite-grain and total-reconciliation tests. Independent Python QA checks counts, null/duplicate keys, bidirectional source coverage, relationships and item values/parent mappings by key. Offline tests reproduce failure modes; credentialed warehouse checks verify the actual engine.
+Core/source keys have generic dbt tests. Finance marts have explicit composite-grain, total-reconciliation and keyed per-bucket reconciliation tests. Independent Python QA checks counts, null/duplicate keys, bidirectional source coverage, relationships, item values/parent mappings and order values/item rollups by key. Offline tests reproduce failure modes; credentialed warehouse checks verify the actual engine.
 
 ## Secrets and source boundaries
 
