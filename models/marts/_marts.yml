@@ -26,7 +26,7 @@ models:
         tests: [not_null, unique]
 
   - name: dim_dates
-    description: "Date dimension derived from observed event dates. Grain: one row per calendar date. Doubles as the MetricFlow time spine."
+    description: "Date dimension derived from observed event dates. Grain: one row per calendar date that appears in the data (sparse, not gap-free). Doubles as the MetricFlow time spine, which is safe only while no metric uses cumulative, offset or fill-nulls behavior."
     time_spine:
       standard_granularity_column: date_key
     columns:

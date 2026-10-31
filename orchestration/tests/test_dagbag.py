@@ -55,13 +55,15 @@ def test_run_policy(dagbag, dag_id):
         assert task.max_retry_delay == timedelta(minutes=30)
 
 
-def test_one_writer_per_target(dagbag):
+def test_one_dbt_task_per_target(dagbag):
     # Daily merge and weekly rebuild write the same target, so they share one pool;
-    # each DAG also runs one instance at a time and every task has a time bound.
+    # each DAG also runs one instance at a time, QA outranks a waiting build and every
+    # task has a time bound.
     pools = set()
     for dag_id in sorted(EXPECTED_DAGS):
         dag = dagbag.dags[dag_id]
         assert dag.max_active_runs == 1
+        assert dag.default_args["weight_rule"] == "upstream"
         for task in dag.tasks:
             assert task.execution_timeout is not None, f"{dag_id}.{task.task_id} has no timeout"
             pools.add(task.pool)

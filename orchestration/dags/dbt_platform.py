@@ -37,9 +37,10 @@ from orchestration.platform_config import audit_command, build_command, target_e
 TARGET_ENV = target_environment(os.environ, PROJECT_DIR)
 
 # Both DAGs write the same target. A one-slot pool (create it before enabling the DAGs:
-# `airflow pools set dbt_platform_target 1 "One dbt writer per target"`) keeps a daily merge
+# `airflow pools set dbt_platform_target 1 "One dbt task per target"`) keeps a daily merge
 # and the weekly rebuild from running at the same time; max_active_runs stops a DAG
-# overlapping itself after a manual trigger, a long run or retries.
+# overlapping itself after a manual trigger, a long run or retries. The upstream weight rule
+# ranks a QA task above a waiting build, so the slot goes to the QA of the build that just ran.
 TARGET_POOL = "dbt_platform_target"
 
 DEFAULT_ARGS = {
@@ -49,6 +50,7 @@ DEFAULT_ARGS = {
     "retry_exponential_backoff": True,
     "max_retry_delay": timedelta(minutes=30),
     "pool": TARGET_POOL,
+    "weight_rule": "upstream",
 }
 
 
