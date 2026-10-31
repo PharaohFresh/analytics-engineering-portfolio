@@ -1,5 +1,6 @@
 -- Date dimension built from the distinct dates that appear across order/fulfillment events.
--- Grain: one row per calendar date. (Phase 2: replace with a dbt_utils.date_spine for full coverage.)
+-- Grain: one row per calendar date that appears in the data. Sparse by design: dates with no
+-- order or fulfillment event are absent, so this is not a gap-free date spine.
 
 with date_universe as (
     select order_date as calendar_date from {{ ref('stg_orders') }}

@@ -55,6 +55,19 @@ def test_run_policy(dagbag, dag_id):
         assert task.max_retry_delay == timedelta(minutes=30)
 
 
+def test_one_writer_per_target(dagbag):
+    # Daily merge and weekly rebuild write the same target, so they share one pool;
+    # each DAG also runs one instance at a time and every task has a time bound.
+    pools = set()
+    for dag_id in sorted(EXPECTED_DAGS):
+        dag = dagbag.dags[dag_id]
+        assert dag.max_active_runs == 1
+        for task in dag.tasks:
+            assert task.execution_timeout is not None, f"{dag_id}.{task.task_id} has no timeout"
+            pools.add(task.pool)
+    assert pools == {"dbt_platform_target"}
+
+
 def test_only_weekly_dag_full_refreshes(dagbag):
     def build_command(dag_id):
         return dagbag.dags[dag_id].get_task("dbt_build").bash_command

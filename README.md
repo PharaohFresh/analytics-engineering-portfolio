@@ -37,7 +37,7 @@ The warehouse uses Google's public `bigquery-public-data.thelook_ecommerce` samp
 | Financial reporting | Composite mart grain checks and revenue/margin/unit/return-total reconciliation |
 | Fiscal plan review | Empty-period coverage, zero/missing targets and independently reconciled month/department dashboard |
 | Temporal event modeling | A session spanning two UTC partitions retains the next-day authorization |
-| Governed consumption | Nine declared MetricFlow metrics, a product SCD-2 snapshot and a dashboard exposure |
+| Governed consumption | Ten declared MetricFlow metrics, a product SCD-2 snapshot and a dashboard exposure |
 | Operational consistency | Airflow build and QA share an explicit project, dataset and dbt target |
 
 ## Architecture and grain
@@ -129,7 +129,7 @@ Merge does not remove rows that disappeared from source. Independent key coverag
 
 The SQLite harness translates selected BigQuery SQL and simulates keyed replacement. It verifies source selection and these business contracts; it does not execute dbt-generated BigQuery MERGE DML or prove all BigQuery numeric/dialect behavior. Credentialed CI remains the warehouse engine check.
 
-Local follow-up verification: 95 offline tests pass on Python 3.12 and 3.14; the three demos run and the dashboard's filters/walkthrough pass at 1440px and 390px widths without page overflow or script errors. Native `dbt parse` passes on Python 3.13 with dbt-core 1.11.11/dbt-bigquery 1.11.3 using a dummy OAuth profile. Use [Actions](https://github.com/PharaohFresh/analytics-engineering-portfolio/actions) for hosted BigQuery build/QA, fiscal readback and Linux Airflow results for the exact revision; local parsing is not a live warehouse build.
+Local follow-up verification: 97 offline tests pass on Python 3.12 and 3.14; the three demos run and the dashboard's filters/walkthrough pass at 1440px and 390px widths without page overflow or script errors. Native `dbt parse` passes on Python 3.13 with dbt-core 1.11.11/dbt-bigquery 1.11.3 using a dummy OAuth profile. Use [Actions](https://github.com/PharaohFresh/analytics-engineering-portfolio/actions) for hosted BigQuery build/QA, fiscal readback and Linux Airflow results for the exact revision; local parsing is not a live warehouse build.
 
 ## CI, catalog and promotion
 
@@ -145,7 +145,7 @@ The [live dbt catalog](https://pharaohfresh.github.io/analytics-engineering-port
 models/staging/       source contracts and typed views
 models/intermediate/ item/customer enrichment
 models/marts/        dimensions, facts, finance marts and exposure
-models/semantic/     two semantic models and nine metric definitions
+models/semantic/     two semantic models and ten metric definitions
 snapshots/           product SCD-2 history
 scripts/             independent BigQuery QA and reusable query contracts
 orchestration/       daily keyed merge, weekly rebuild and DagBag tests

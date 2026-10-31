@@ -1,6 +1,6 @@
 # Runbook: QA before requesting merge review
 
-1. Run `python -m pytest offline_tests -q` and reproduce both case studies.
+1. Run `python -m pytest offline_tests -q` and reproduce all three case studies.
 2. Set `DBT_TARGET=dev`, `BQ_PROJECT` and `BQ_DEV_DATASET` for the build, and `BQ_DATASET` to that same dataset for QA.
 3. Run `dbt build --target dev`; all models, data tests and snapshot must pass.
 4. Run `python scripts/qa_audit.py`; all twelve read-only contracts must pass.

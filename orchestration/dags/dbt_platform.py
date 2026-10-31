@@ -36,12 +36,19 @@ from orchestration.platform_config import audit_command, build_command, target_e
 
 TARGET_ENV = target_environment(os.environ, PROJECT_DIR)
 
+# Both DAGs write the same target. A one-slot pool (create it before enabling the DAGs:
+# `airflow pools set dbt_platform_target 1 "One dbt writer per target"`) keeps a daily merge
+# and the weekly rebuild from running at the same time; max_active_runs stops a DAG
+# overlapping itself after a manual trigger, a long run or retries.
+TARGET_POOL = "dbt_platform_target"
+
 DEFAULT_ARGS = {
     "owner": "analytics-engineering",
     "retries": 2,
     "retry_delay": timedelta(minutes=5),
     "retry_exponential_backoff": True,
     "max_retry_delay": timedelta(minutes=30),
+    "pool": TARGET_POOL,
 }
 
 
@@ -56,6 +63,7 @@ def build_platform_dag(dag_id: str, schedule: str, full_refresh: bool) -> DAG:
         schedule=schedule,
         start_date=pendulum.datetime(2026, 7, 1, tz="America/Chicago"),
         catchup=False,
+        max_active_runs=1,
         default_args=DEFAULT_ARGS,
         tags=["dbt", "bigquery", "governed-delivery"],
         doc_md=__doc__,
@@ -65,6 +73,7 @@ def build_platform_dag(dag_id: str, schedule: str, full_refresh: bool) -> DAG:
             bash_command=build_command(full_refresh),
             env=TARGET_ENV,
             append_env=True,
+            execution_timeout=timedelta(hours=2),
         )
 
         # Independent reconciliation (trust, but verify): re-counts grains and
@@ -75,6 +84,7 @@ def build_platform_dag(dag_id: str, schedule: str, full_refresh: bool) -> DAG:
             env=TARGET_ENV,
             # Both tasks inherit worker authentication, without literal credentials.
             append_env=True,
+            execution_timeout=timedelta(minutes=30),
         )
 
         dbt_build >> qa_audit
