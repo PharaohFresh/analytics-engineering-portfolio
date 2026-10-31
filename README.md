@@ -1,6 +1,6 @@
 # Retail Analytics Platform: dbt, BigQuery and Business Contracts
 
-A documented retail warehouse with order and physical-item facts, conformed dimensions, finance marts, semantic metrics and independent reconciliation. Three runnable case studies cover revenue fan-out, checkout events across midnight and fiscal plan review through an interactive dashboard.
+A retail analytics platform for reviewing sales, returns and plan coverage without hiding missing plans and unmapped departments, or multiplying revenue through joins. Built with dbt, BigQuery and Airflow, with an interactive fiscal dashboard and independent reconciliation checks. Public sample data, invented offline records and invented targets; no employer data.
 
 **Author:** [Amir Ebrahim](https://www.linkedin.com/in/amirebrahim/) | Senior Analytics Engineer, Austin, Texas
 
@@ -14,6 +14,18 @@ A documented retail warehouse with order and physical-item facts, conformed dime
 
 *Original offline fixture shown above. The live view labels its public warehouse source and uses separately scaled invented targets with the same fiscal/coverage policy.*
 
+## One worked decision
+
+On the offline fixture shown above, plan-covered attainment is **109.1%**: $840.00 of plan-covered value against a $770.00 target, out of $890.00 total retained value. Read alone, that says the three months beat plan. The dashboard keeps three facts beside it:
+
+| Bucket | Retained value | Plan | Why it matters |
+|---|---|---|---|
+| March / Women | $0.00 | $180.00 | Nothing retained against plan; the empty bucket stays visible instead of dropping out |
+| April / Women | $300.00 | $0.00 (declared) | Over a third of the covered value sits against a zero plan; its own ratio is unavailable, not infinite |
+| April / Unmapped | $50.00 | No plan | Value with no department or plan stays in the total but outside the ratio |
+
+The decision is to review plan coverage before reporting the aggregate. The fixture has nine month/department buckets. The live public-data view has six, with different values, so it does not reproduce these numbers.
+
 The business problem is concrete: a dashboard can be wrong even when a pipeline succeeds. A creation-time watermark can miss a return; a customization join can repeat a sale; a session partition can omit a payment. This project makes those failure modes visible and tests the chosen contracts.
 
 The warehouse uses Google's public `bigquery-public-data.thelook_ecommerce` sample dataset. Offline cases use original, invented records. No employer source code, private business records or credentials are included.
@@ -22,7 +34,7 @@ The warehouse uses Google's public `bigquery-public-data.thelook_ecommerce` samp
 
 | Reader | Start here | What to look for |
 |---|---|---|
-| Recruiter or hiring manager | [Interactive fiscal view](https://pharaohfresh.github.io/analytics-engineering-portfolio/dashboard/), [grain case](case_studies/grain_contracts/README.md) and [checkout case](case_studies/retail_telemetry/README.md) | A working stakeholder view, a reproducible result and a clear interpretation |
+| Recruiter or hiring manager | [The worked decision](#one-worked-decision) above, then the [interactive fiscal view](https://pharaohfresh.github.io/analytics-engineering-portfolio/dashboard/), [grain case](case_studies/grain_contracts/README.md) and [checkout case](case_studies/retail_telemetry/README.md) | A working stakeholder view, a reproducible result and a clear interpretation |
 | Analytics engineer | [Item fact](models/marts/core/fct_order_items.sql), [finance marts](models/marts/finance/) and [tests](tests/) | Explicit grain, mutable-source handling and financial reconciliation |
 | Data/platform engineer | [Independent contracts](scripts/qa_contracts.py), [orchestration](orchestration/README.md) and [regressions](offline_tests/) | Same-count corruption, target consistency, retries and rebuild policy |
 
