@@ -22,7 +22,9 @@ flowchart LR
 |---|---|---|
 | `DBT_TARGET` | `dev` | `dev` or reviewed `prod` deployment |
 | `BQ_PROJECT` | `career-analytics-portfolio` | Personal sample-project placeholder; override for your deployment |
-| `BQ_DATASET` | `dbt_dev` for dev; `analytics` for prod | Both build output and QA read target |
+| `BQ_DEV_DATASET` | `dbt_dev` | Dev build output; read only when `DBT_TARGET=dev` |
+| `BQ_PROD_DATASET` | `analytics` | Prod build output; read only when `DBT_TARGET=prod` |
+| `BQ_DATASET` | Derived from the selected target's dataset | QA read target; an inherited value is overridden |
 | `DBT_PROJECT_DIR` | Repository root relative to the DAG | Deployed project directory |
 
 Both commands quote environment expansions, so paths with spaces are not concatenated into the shell program. `append_env=True` retains worker `PATH` and Application Default Credentials while explicit target variables override inherited values. Credentials are never literal DAG values.
@@ -31,7 +33,7 @@ Use the provided profile convention on the worker. A custom profile that ignores
 
 ## What is tested
 
-Portable [configuration tests](../offline_tests/test_configuration.py) render the actual profile and compare development/production defaults and overrides. Linux [DagBag tests](tests/test_dagbag.py) check:
+Portable [configuration tests](../offline_tests/test_configuration.py) render the actual profile and compare development/production defaults and overrides. They also check that a dataset exported for dev never reaches the prod output or the QA target. Linux [DagBag tests](tests/test_dagbag.py) check:
 
 - clean imports and both expected DAG IDs;
 - build before independent QA;
@@ -55,7 +57,7 @@ For a worker that actually executes the tasks, also install [warehouse dependenc
 
 ```bash
 export AIRFLOW__CORE__DAGS_FOLDER="$(pwd)/orchestration/dags"
-export DBT_TARGET=dev BQ_PROJECT=your-gcp-project BQ_DATASET=dbt_dev
+export DBT_TARGET=dev BQ_PROJECT=your-gcp-project BQ_DEV_DATASET=dbt_dev
 airflow standalone
 ```
 

@@ -4,7 +4,7 @@ This public reference keeps development and production concepts explicit. The in
 
 ## Environments and promotion
 
-The profile offers separate `dev` (`dbt_dev`) and `prod` (`analytics`) outputs. Development runs use `dev`; no production build runs from a laptop. Airflow resolves an explicit target and gives build/QA the same project/dataset.
+The profile offers separate `dev` (`dbt_dev`) and `prod` (`analytics`) outputs. Each reads its own dataset variable (`BQ_DEV_DATASET`, `BQ_PROD_DATASET`), and each target's product snapshot lands in its own `<dataset>_snapshots` dataset. Development runs use `dev`; no production build runs from a laptop. Airflow resolves an explicit target and gives build/QA the same project/dataset.
 
 Before production promotion:
 
@@ -18,6 +18,8 @@ These are deployment requirements. The current Actions pipeline builds `dbt_ci` 
 ## No-deletion policy
 
 Deprecate model definitions before removing them; retain a deprecation alias for one cycle when renaming. Product snapshots are append-only history and are not destructively rebuilt. A reviewed full refresh of the item fact is a separate data-state realignment after source disappearance/regeneration, not permission to erase snapshot history or drop unrelated models.
+
+Until October 2026 the snapshot wrote to a fixed `snapshots` dataset, so CI and development builds appended to one shared `snapshots.snap_products` table. That table is retired as mixed CI/development history. It is left in place, neither copied nor dropped, and is no longer written. Each environment's history starts on its first build after the change.
 
 ## Data integrity
 
