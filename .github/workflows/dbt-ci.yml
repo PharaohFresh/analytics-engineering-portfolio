@@ -52,7 +52,9 @@ jobs:
 
       # --full-refresh: thelook_ecommerce is periodically regenerated upstream, so an
       # incremental table persisted across CI runs would accumulate orphans from prior
-      # generations of the source. CI builds hermetically from the current source state.
+      # generations of the source. Models rebuild from the current source state; the
+      # snap_products snapshot (dataset dbt_ci_snapshots) is not rebuilt by --full-refresh
+      # and keeps its history between runs.
       - name: dbt build (models + tests + snapshots)
         run: dbt build --full-refresh --profiles-dir ci
 
