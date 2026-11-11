@@ -1,6 +1,6 @@
 # Retail Analytics Platform: dbt, BigQuery and Business Contracts
 
-A retail analytics platform for reviewing sales, returns and plan coverage without hiding missing plans and unmapped departments, or multiplying revenue through joins. Built with dbt, BigQuery and Airflow, with an interactive fiscal dashboard and independent reconciliation checks. Public sample data, invented offline records and invented targets; no employer data.
+A retail analytics platform for reviewing sales, returns and plan coverage without hiding missing plans and unmapped departments, or multiplying revenue through joins. Built with dbt, BigQuery and Airflow, with an interactive fiscal dashboard and independent reconciliation checks. Public sample data, invented offline records and invented targets; no employer code or data.
 
 **Author:** [Amir Ebrahim](https://www.linkedin.com/in/amirebrahim/) | Senior Analytics Engineer, Austin, Texas
 
@@ -12,7 +12,7 @@ A retail analytics platform for reviewing sales, returns and plan coverage witho
 
 ![Fiscal dashboard preview showing the original invented fixture, plan gaps and explicit missing-plan coverage](dashboard/preview.png)
 
-*Original offline fixture shown above. The live view labels its public warehouse source and uses separately scaled invented targets with the same fiscal/coverage policy.*
+*Offline fixture shown above. The live view uses the public warehouse source with separately scaled invented targets and the same fiscal/coverage policy.*
 
 ## One worked decision
 
@@ -24,11 +24,11 @@ On the offline fixture shown above, plan-covered attainment is **109.1%**: $840.
 | April / Women | $300.00 | $0.00 (declared) | Over a third of the covered value sits against a zero plan; its own ratio is unavailable, not infinite |
 | April / Unmapped | $50.00 | No plan | Value with no department or plan stays in the total but outside the ratio |
 
-The decision is to review plan coverage before reporting the aggregate. The fixture has nine month/department buckets. The live public-data view has six, with different values, so it does not reproduce these numbers.
+The decision is to review plan coverage before reporting the aggregate.
 
-The business problem is concrete: a dashboard can be wrong even when a pipeline succeeds. A creation-time watermark can miss a return; a customization join can repeat a sale; a session partition can omit a payment. This project makes those failure modes visible and tests the chosen contracts.
+A dashboard can be wrong even when a pipeline succeeds. A creation-time watermark can miss a return; a customization join can repeat a sale; a session partition can omit a payment. This project makes those failure modes visible and tests the chosen contracts.
 
-The warehouse uses Google's public `bigquery-public-data.thelook_ecommerce` sample dataset. Offline cases use original, invented records. No employer source code, private business records or credentials are included.
+The warehouse uses Google's public `bigquery-public-data.thelook_ecommerce` sample dataset. Offline cases use original, invented records.
 
 ## A three-minute reviewer path
 
@@ -75,13 +75,13 @@ flowchart LR
 - `fct_order_items`: one row per `order_item_key`, one physical unit in this source.
 - `mart_revenue_by_segment`: one row per `(traffic_source, country)`.
 - `mart_product_category_margin`: one row per `(department, category)`.
-- `snap_products`: separate SCD-2 product history. The fact currently joins the current product record rather than performing a historical cost lookup.
+- `snap_products`: separate SCD-2 product history. The fact joins the current product record.
 
-The [exposures](models/marts/_exposures.yml) distinguish the declared revenue/margin consumer from the implemented fiscal dashboard. The fiscal view consumes its month/department mart and publishes after independent reconciliation; it does not require a commercial BI license.
+The [exposures](models/marts/_exposures.yml) distinguish the declared revenue/margin consumer from the implemented fiscal dashboard. The fiscal view consumes its month/department mart and publishes after independent reconciliation.
 
 ## Run the offline examples first
 
-Use Python 3.12 or newer in a virtual environment. No warehouse account is needed for these commands. From the repository root:
+Use Python 3.12 or newer in a virtual environment. No warehouse account is needed. From the repository root:
 
 ```bash
 python -m pip install -r requirements-offline.txt
@@ -90,7 +90,7 @@ python -m case_studies.grain_contracts --output artifacts/grain
 python -m case_studies.retail_telemetry --output artifacts/telemetry
 ```
 
-On Windows, `py -m venv .venv` creates an environment; run its interpreter as `.venv\Scripts\python.exe`. On macOS/Linux, use `python3 -m venv .venv` and `.venv/bin/python`. The three offline case-study demos themselves need only the standard library. [Run the fiscal dashboard](case_studies/fiscal_attainment/README.md) for its interactive walkthrough.
+[Run the fiscal dashboard](case_studies/fiscal_attainment/README.md) for its interactive walkthrough.
 
 | Example | Reproduced result | Committed proof |
 |---|---|---|
@@ -99,11 +99,9 @@ On Windows, `py -m venv .venv` creates an environment; run its interpreter as `.
 | Cross-midnight checkout | Full session has one authorization; start-date-only filtering finds zero | [Telemetry report](case_studies/retail_telemetry/example-report.json) |
 | Payment signals | Two recovered retries, one authorization-review candidate and one printer incident | [Interpretation and limits](case_studies/retail_telemetry/README.md) |
 
-Multiple authorizations are review candidates, not confirmed duplicate charges. Routine API duration is excluded from incident flags. Each case explains which observations justify the result.
-
 ## Build the BigQuery warehouse
 
-Use a separate Python 3.13 environment for the pinned warehouse dependencies. The build needs your own BigQuery project, dataset permissions, billing/quota capacity and Application Default Credentials. Query and storage costs depend on your account and workload; no free-tier guarantee is made.
+Use a separate Python 3.13 environment for the pinned warehouse dependencies. The build needs your own BigQuery project, dataset permissions and Application Default Credentials.
 
 ```bash
 python -m pip install -r requirements-warehouse.txt
@@ -117,39 +115,35 @@ dbt docs generate --target dev
 dbt docs serve
 ```
 
-The shell setup above is Bash. In PowerShell, copy the [profile template](profiles.yml.example) to `$HOME\.dbt\profiles.yml`, then set `$env:DBT_TARGET='dev'`, `$env:BQ_PROJECT='your-gcp-project'` and `$env:BQ_DEV_DATASET='dbt_dev'`, and set `$env:BQ_DATASET='dbt_dev'` before the QA script. Never commit the populated profile or credentials.
-
-The dev and prod outputs read separate variables (`BQ_DEV_DATASET`, `BQ_PROD_DATASET`), so a dataset exported for development cannot redirect a production build. A profile copied from the template before October 2026 reads `BQ_DATASET` for both outputs; copy the current template again. The product snapshot lands in `<dataset>_snapshots` for the selected output, for example `dbt_dev_snapshots`. The independent QA script requires both `BQ_PROJECT` and `BQ_DATASET`; it does not guess the built target. Exit code `0` means all twelve contracts passed. Exit code `1` means a failed check or invalid runtime configuration.
+The dev and prod outputs read separate variables (`BQ_DEV_DATASET`, `BQ_PROD_DATASET`), so a dataset exported for development cannot redirect a production build. The product snapshot lands in `<dataset>_snapshots` for the selected output, for example `dbt_dev_snapshots`. The QA script requires both `BQ_PROJECT` and `BQ_DATASET`. Exit code `0` means all twelve contracts passed.
 
 ## Why the incremental strategy changed
 
 `item_created_at > max(item_created_at)` only sees newly created records. It misses a return on an older item, a late-arriving item and a new item tied with the maximum timestamp. It also cannot refresh a current product cost/category lookup for an old item.
 
-The fact now selects all current enriched source rows and uses dbt's keyed BigQuery merge. This preserves repeat-run idempotency and updates mutable values, at the cost of scanning the current source every run. It is a correctness-first reference strategy, not a claim of low scan cost or a general high-volume CDC design.
+The fact now selects all current enriched source rows and uses dbt's keyed BigQuery merge. This keeps repeat runs idempotent and updates mutable values, at the cost of scanning the current source every run.
 
-Merge does not remove rows that disappeared from source. Independent key coverage/count checks detect that state; a reviewed `dbt build --target dev --full-refresh` realigns the fact. The weekly DAG provides a scheduled rebuild mode. Production-scale designs should choose a trustworthy update watermark, change log or bounded reprocessing policy and explicitly handle deletions.
+Merge does not remove rows that disappeared from source. Independent key coverage/count checks detect that state; a reviewed `dbt build --target dev --full-refresh` realigns the fact. The weekly DAG provides a scheduled rebuild mode. At production scale, choose a trustworthy update watermark, change log or bounded reprocessing policy and handle deletions explicitly.
 
-`unit_cost`, category and margin reflect the current product record. Returns are a flag; sales totals include source sale prices rather than netting refunds. Sale-time cost accounting and recognized/net revenue need additional business contracts.
+`unit_cost`, category and margin reflect the current product record. Returns are a flag; sales totals use source sale prices rather than netting refunds.
 
 ## Quality and verification
 
 - Generic dbt tests assert source/core keys and relationships.
-- Six [singular finance tests](tests/) assert each composite grain, reconcile aggregate money, units and returns, and reconcile every bucket by key. Public sample prices are floating-point values, so money checks allow `max(1e-6, abs(expected) * 1e-9)`; rounded AOV and rates allow one rounding step (0.011 and 0.00011).
+- Six [singular finance tests](tests/) assert each composite grain, reconcile aggregate money, units and returns, and reconcile every bucket by key.
 - Twelve [independent QA queries](scripts/qa_contracts.py) check row counts, unique/non-null keys, bidirectional source coverage, orphan items, prices, item state/parent/product enrichment, and order values/item rollups by stable key.
-- [Offline regressions](offline_tests/test_warehouse_sql.py) exercise the actual rendered item/enrichment/order/finance SQL and singular tests on invented SQLite tables. They reproduce old returns, timestamp ties, late arrivals, changed costs/categories, missing source rows and same-count corruption, including offsetting price errors. Both finance marts are checked against exact expected rows, and keyed per-bucket reconciliation fails swapped labels, offsetting bucket errors and wrong ratios that leave every total intact.
-- [Configuration tests](offline_tests/test_configuration.py) render the actual profile template and compare default/overridden targets with the Airflow environment helper. Linux DagBag tests verify imports, dependencies, task environments, retry policy, the shared one-slot pool, one active run per DAG, QA priority and task timeouts.
+- [Offline regressions](offline_tests/test_warehouse_sql.py) exercise the rendered item/enrichment/order/finance SQL and singular tests on invented SQLite tables. They reproduce old returns, timestamp ties, late arrivals, changed costs/categories, missing source rows and same-count corruption, including offsetting price errors, swapped labels and wrong ratios that leave every total intact.
+- [Configuration tests](offline_tests/test_configuration.py) render the profile template and compare default/overridden targets with the Airflow environment helper. Linux DagBag tests verify imports, dependencies, task environments, retry policy, the shared one-slot pool, one active run per DAG, QA priority and task timeouts.
 
-The SQLite harness translates selected BigQuery SQL and simulates keyed replacement. It verifies source selection and these business contracts; it does not execute dbt-generated BigQuery MERGE DML or prove all BigQuery numeric/dialect behavior. Credentialed CI remains the warehouse engine check.
-
-Local follow-up verification: 97 offline tests pass on Python 3.12 and 3.14; the three demos run and the dashboard's filters/walkthrough pass at 1440px and 390px widths without page overflow or script errors. Native `dbt parse` passes on Python 3.13 with dbt-core 1.11.11/dbt-bigquery 1.11.3 using a dummy OAuth profile. Use [Actions](https://github.com/PharaohFresh/analytics-engineering-portfolio/actions) for hosted BigQuery build/QA, fiscal readback and Linux Airflow results for the exact revision; local parsing is not a live warehouse build.
+The SQLite harness covers source selection and business contracts; credentialed CI is the warehouse engine check. See [Actions](https://github.com/PharaohFresh/analytics-engineering-portfolio/actions) for hosted BigQuery build/QA, fiscal readback and Linux Airflow results.
 
 ## CI, catalog and promotion
 
-Three workflows separate portable contracts, Linux Airflow structure and credentialed BigQuery build/QA. BigQuery CI builds `dbt_ci` with a full refresh; runs are serialized because they share that dataset. This pipeline does not deploy the `prod` profile.
+Three workflows separate portable contracts, Linux Airflow structure and credentialed BigQuery build/QA. BigQuery CI builds `dbt_ci` with a full refresh; runs are serialized because they share that dataset.
 
-The [live dbt catalog](https://pharaohfresh.github.io/analytics-engineering-portfolio/) is published through GitHub Pages after a successful `main` build. The same deployment publishes the fiscal dashboard only after an independent item-to-mart reconciliation. The view labels public source data and invented planning targets. A failed build or dashboard reconciliation leaves the previous successful deployment in place; check Actions and the snapshot timestamp for freshness. Local `dbt docs serve` remains available after a warehouse build.
+The [live dbt catalog](https://pharaohfresh.github.io/analytics-engineering-portfolio/) is published through GitHub Pages after a successful `main` build. The same deployment publishes the fiscal dashboard only after an independent item-to-mart reconciliation; a failed build or reconciliation leaves the previous deployment in place. Local `dbt docs serve` remains available after a warehouse build.
 
-[Governance](GOVERNANCE.md) retains separate development/production targets and human review before production promotion. A passing local demo or PR check does not authorize that promotion.
+[Governance](GOVERNANCE.md) retains separate development/production targets and human review before production promotion.
 
 ## Repository map
 
